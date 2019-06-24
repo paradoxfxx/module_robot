@@ -1,21 +1,5 @@
-#########################################################################
-# CMakeLists.txt file for building                      #
-#                                                                       #
-# This file is free software: you can redistribute it and/or modify     #
-# it under the terms of the GNU General Public License as published by  #
-# the Free Software Foundation, either version 3 of the License, or     #
-# (at your option) any later version.                                   #
-#                                                                       #
-# This program is distributed in the hope that it will be useful,       #
-# but WITHOUT ANY WARRANTY; without even the implied warranty of        #
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         #
-# GNU General Public License for more details.                          #
-#                                                                       #
-# You should have received a copy of the GNU General Public License     #
-# along with this program.  If not, see <http://www.gnu.org/licenses/>. #
-#########################################################################
-
 cmake_minimum_required (VERSION 2.8.12)
+add_compile_options(-std=c++11)
 
 project(modular_robot)
 
@@ -53,12 +37,15 @@ message(STATUS "boost include path: ${Boost_INCLUDE_DIRS}")
 message(STATUS "boost lib path: ${Boost_LIBRARY_DIRS}")
 link_directories(${Boost_LIBRARY_DIR})
 
+
+
+
 ###############################################################
 
 
-set(EXAMPLES rtprint trivial-periodic)
+# set(EXAMPLES rtprint trivial-periodic)
 
-set(LIB_XENOMAI
+set(LIB_XENOMAI 
     ${Xenomai_NATIVE_DL_FLAGS}
     ${soem_LIBRARIES}
     ${Boost_LIBRARIES}
@@ -71,16 +58,16 @@ add_subdirectory( src )
 
 
 
-################xenomai test file#############################################
-add_executable(rtprint rtprint.c)
-target_include_directories(rtprint PUBLIC ${Xenomai_NATIVE_INCLUDE_DIRS})
-target_link_libraries(rtprint ${Xenomai_NATIVE_DL_FLAGS})
-set_target_properties(rtprint PROPERTIES COMPILE_FLAGS ${Xenomai_NATIVE_DEFINITIONS})
+# ################xenomai test file#############################################
+# add_executable(rtprint rtprint.c)
+# target_include_directories(rtprint PUBLIC ${Xenomai_NATIVE_INCLUDE_DIRS})
+# target_link_libraries(rtprint ${Xenomai_NATIVE_DL_FLAGS})
+# set_target_properties(rtprint PROPERTIES COMPILE_FLAGS ${Xenomai_NATIVE_DEFINITIONS})
 
 
-add_executable(trivial-periodic trivial-periodic.c)
-target_include_directories(trivial-periodic PUBLIC ${Xenomai_NATIVE_INCLUDE_DIRS})
-target_link_libraries(trivial-periodic ${Xenomai_NATIVE_DL_FLAGS})
-set_target_properties(trivial-periodic PROPERTIES COMPILE_FLAGS ${Xenomai_NATIVE_DEFINITIONS})
-################################################################################
+# add_executable(trivial-periodic trivial-periodic.c)
+# target_include_directories(trivial-periodic PUBLIC ${Xenomai_NATIVE_INCLUDE_DIRS})
+# target_link_libraries(trivial-periodic ${Xenomai_NATIVE_DL_FLAGS})
+# set_target_properties(trivial-periodic PROPERTIES COMPILE_FLAGS ${Xenomai_NATIVE_DEFINITIONS})
+# ################################################################################
 

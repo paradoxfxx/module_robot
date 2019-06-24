@@ -70,6 +70,7 @@ public:
     */
 class EtherCatManager
 {
+    
 public:
     /**
     * \brief Constructs and initializes the ethercat slaves on a given network interface.
