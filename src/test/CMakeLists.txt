@@ -14,4 +14,8 @@ target_link_libraries(simple_test_cst elmoclient ethercatmanager )
 add_executable(test_response test_response.cpp)
 target_link_libraries(test_response elmoclient ethercatmanager )
 
+add_executable(robot_model_test robot_model_test.cpp)
+target_link_libraries(robot_model_test robotmodel )
+
+
 ################################################################

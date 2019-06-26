@@ -37,9 +37,9 @@ message(STATUS "boost include path: ${Boost_INCLUDE_DIRS}")
 message(STATUS "boost lib path: ${Boost_LIBRARY_DIRS}")
 link_directories(${Boost_LIBRARY_DIR})
 
-
-
-
+find_package(Eigen3 REQUIRED)
+INCLUDE_DIRECTORIES(${EIGEN3_INCLUDE_DIR})
+message(STATUS "eigen3 include path: ${EIGEN3_INCLUDE_DIR}")
 ###############################################################
 
 
