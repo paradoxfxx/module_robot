@@ -14,6 +14,7 @@ namespace model
         if (!kdl_parser::treeFromFile(urdf_name, robot_tree)){
 
             std::cout<<"Failed to construct kdl tree"<<std::endl;
+
         }else{
             
             //convert tree to chain
@@ -22,14 +23,13 @@ namespace model
                                 robot_chain);
 
             // get the top point name
-            top_point_name = robot_tree.getSegments().end()->first;
+            // top_point_name = robot_tree.getSegments().end()->first;
 
-            //Initialize gravity(to do)
-            // gravity = 
+            //Initialize gravity
+            gravity = KDL::Vector(0,0,9.80665);
 
             // Initialize solver
             // forward and inverse kinematic posistion solver 
-            fksolver_tree_pos = std::make_shared<KDL::TreeFkSolverPos_recursive>(robot_tree);
             fksolver_chain_pos = std::make_shared<KDL::ChainFkSolverPos_recursive>(robot_chain);
             
             KDL::ChainFkSolverPos_recursive fksolver1(robot_chain);//Forward position solver
@@ -51,7 +51,7 @@ namespace model
     bool RobotModel::forward_kinematic_pos( KDL::JntArray &joint_pos,
                                             KDL::Frame &descartes_pos){
 
-        if(! fksolver_tree_pos->JntToCart(joint_pos,descartes_pos,top_point_name)){
+        if(! fksolver_chain_pos->JntToCart(joint_pos,descartes_pos)){
 
             return true;
             
