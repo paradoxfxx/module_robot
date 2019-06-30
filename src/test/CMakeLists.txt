@@ -18,4 +18,7 @@ add_executable(robot_model_test robot_model_test.cpp)
 target_link_libraries(robot_model_test robotmodel )
 
 
+
+
+add_executable(joint_impedance_control joint_impedance_control.cpp)
 ################################################################
