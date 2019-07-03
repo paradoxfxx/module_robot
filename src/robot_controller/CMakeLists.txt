@@ -1,6 +1,8 @@
 add_library(controller SHARED
 
 impedance_controller.cpp
+pid_controller.cpp
+
 
 )
 

@@ -21,4 +21,7 @@ target_link_libraries(robot_model_test robotmodel )
 
 
 add_executable(joint_impedance_control joint_impedance_control.cpp)
+
+add_executable(pid_test pid_test.cpp)
+target_link_libraries(pid_test controller)
 ################################################################
