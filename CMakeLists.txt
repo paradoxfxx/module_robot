@@ -1,7 +1,11 @@
 cmake_minimum_required (VERSION 2.8.12)
+
 add_compile_options(-std=c++11)
 
 project(modular_robot)
+
+#SET(CMAKE_BUILD_TYPE DEBUG)
+SET(CMAKE_BUILD_TYPE RELEASE)
 
 set(ENV{XENOMAI_ROOT_DIR} /usr/xenomai)
 
