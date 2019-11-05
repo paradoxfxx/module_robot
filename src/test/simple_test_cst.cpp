@@ -36,7 +36,7 @@ int main(int argc, char *argv[])
   /* start slaveinfo */
   ethercat::EtherCatManager manager(ifname);
   std::vector<elmo_control::ElmoClient *> clients;
-    for (int i = 0; i < manager.getNumClients(); i++ )
+    for (int i = 0; i < manager.getNumClinets(); i++ )
     {
       clients.push_back(new elmo_control::ElmoClient(manager, i+1));
     }

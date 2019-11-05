@@ -14,6 +14,8 @@ namespace model
         if (!kdl_parser::treeFromFile(urdf_name, robot_tree)){
 
             std::cout<<"Failed to construct kdl tree"<<std::endl;
+            exit(0);
+
 
         }else{
             
@@ -75,8 +77,6 @@ namespace model
             return true;
         }
     }
-
-
 
     bool RobotModel::forward_kinematic_vel( KDL::JntArrayVel &joint_vel,
                                             KDL::FrameVel &descartes_vel){

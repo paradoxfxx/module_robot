@@ -1,7 +1,7 @@
-add_library(elmoclient 
+add_library(ElmoClient 
     elmo_client.cpp
 )
 
-target_link_libraries(elmoclient 
-    ethercatmanager
+target_link_libraries(ElmoClient 
+    EthercatManager
 )

@@ -1,12 +1,13 @@
-add_library(controller SHARED
+add_library(Controller SHARED
 
-impedance_controller.cpp
+descartes_impedance_controller.cpp
+joint_impedance_control.cpp
 pid_controller.cpp
 
 
 )
 
-target_link_libraries(controller
+target_link_libraries(Controller
 
     ${orocos_kdl_LIBRARIES}
 )

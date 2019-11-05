@@ -1,12 +1,11 @@
-#include "robot_control/robot_client.h"
+#include "robot_control/robot_joint_client.h"
 
 namespace robot_control
 {
 
-
 /*****************************public********************************/
 
-RobotClient::RobotClient(ethercat::EtherCatManager& manager, int slave_no){
+RobotJointClient::RobotJointClient(ethercat::EtherCatManager& manager, int slave_no){
 
     client = new elmo_control::ElmoClient( manager, slave_no);
 
@@ -64,66 +63,65 @@ RobotClient::RobotClient(ethercat::EtherCatManager& manager, int slave_no){
 
 }
 
-RobotClient::~RobotClient(){
+RobotJointClient::~RobotJointClient(){
 
   shutdown();
   delete(client);
 }
     
-void RobotClient::sentpos(double pos){
+void RobotJointClient::sentpos(double pos){
 
-  output.target_position = data_to_count(pos);
+  output.target_position = DATA_TO_COUNT(pos);
   client->writeOutputs(output);
 }
 
-void RobotClient::sentvel(double vel){
+void RobotJointClient::sentvel(double vel){
 
-  output.target_velocity = data_to_count(vel);
+  output.target_velocity = DATA_TO_COUNT(vel);
   client->writeOutputs(output);
 }
 
-void RobotClient::sentorque(double torque){
+void RobotJointClient::sentorque(double torque){
 
-  output.target_torque = torque_to_motorT(torque);
+  output.target_torque = TORQUE_USER_TO_MOTOR(torque);
   client->writeOutputs(output);
 }
 
-bool RobotClient::changeOPmode(int opmode){
+bool RobotJointClient::changeOPmode(int opmode){
   
+  printf("Changing opmode to %d !\n", opmode );
   while(input.operation_mode != opmode){
-    printf("Changing opmode to %d !\n", opmode );
     output.operation_mode = opmode;
     client->writeOutputs(output);
-    usleep(1e+5);
     client->readInputs();
   }
     printf(" Opmode is %d !\n", opmode );
 }
 
 
- void RobotClient::getfeedback(){
+ void RobotJointClient::getfeedback(){
   client->readInputs();
 
-  pos_f = count_to_data(input.position_actual_value);
-  vel_f = count_to_data(input.velocity_actual_value);
-  torque_f = motorT_to_torque(input.torque_actual_value);
+  pos_f = COUNT_TO_DATA(input.position_actual_value);
+  vel_f = COUNT_TO_DATA(input.velocity_actual_value);
+  torque_f = TORQUE_MOTOR_TO_USER(input.torque_actual_value);
 
 }
 
 
-double RobotClient::getpos(){
+double RobotJointClient::getpos() const{
   return pos_f;
 }
 
-double RobotClient::getvel(){
+double RobotJointClient::getvel() const{
   return vel_f;
 }
 
-double RobotClient::getorque(){
+double RobotJointClient::getorque() const{
   return torque_f;
 }
 
-void RobotClient::shutdown(){
+void RobotJointClient::shutdown(){
 
   client->printPDSStatus(input);
   client->printPDSOperation(input);
@@ -131,32 +129,5 @@ void RobotClient::shutdown(){
   client->servoOff();
 }
 /********************************************************************/
-
-
-
-
-/*****************************private********************************/
-
-int32_t RobotClient::data_to_count(double data){
-
-    return int32_t(data * RESOLUTION * REDUCTION_RATIO / 360);
-}
-
-double RobotClient::count_to_data(int32_t count){
-
-    return double(count * 360 / RESOLUTION / REDUCTION_RATIO);
-}
-
-int RobotClient::torque_to_motorT(double torque){
-
-    return int(torque * 1000 / RATE_TORQUE);
-}
-
-double RobotClient::motorT_to_torque(int torque){
-
-  return double(torque * RATE_TORQUE / 1000);
-}
-/********************************************************************/
-
 
 }// end of robot_control namespace
