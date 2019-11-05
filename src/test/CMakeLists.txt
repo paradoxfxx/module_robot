@@ -1,3 +1,7 @@
+
+add_subdirectory(xenomai_test)
+
+
 ######################test file#################################
 add_executable(reset reset.cpp)
 target_link_libraries(reset ElmoClient EthercatManager)
