@@ -2,11 +2,6 @@
 #include <sys/mman.h>
 #include <native/task.h>
 #include <rtdk.h>
-#include <timer.h>
-
-RTIME period = 1e+6 ; //1ms
-RTIME start;
-RTIME end;
 
 void task2_func(void *arg)
 {
@@ -30,7 +25,6 @@ int main(int argc, char **argv)
 {
 	RT_TASK task1, task2;
 	int i = 0;
-	int success;
 
 	mlockall(MCL_CURRENT|MCL_FUTURE);
 
@@ -46,19 +40,9 @@ int main(int argc, char **argv)
 	/* To demonstrate that rt_printf is safe */
 	rt_task_set_mode(0, T_WARNSW, NULL);
 
-	start = rt_timer_read();
-    rt_printf("start: %d \n",start);
-
-    // rt_task_sleep(period);
-
-    end = rt_timer_read();
-    rt_printf("end: %d \n",end);
-
-    rt_printf("time response: %d\n",end - start);
-
-	// while (1) {
-	// 	rt_task_sleep(5000000LL);
-	// 	rt_printf("%s: #%d Hello RT world!\n",
-	// 		  rt_print_buffer_name(), ++i);
-	// }
+	while (1) {
+		rt_task_sleep(5000000LL);
+		rt_printf("%s: #%d Hello RT world!\n",
+			  rt_print_buffer_name(), ++i);
+	}
 }
