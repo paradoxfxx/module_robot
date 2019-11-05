@@ -1,28 +1,9 @@
-/****************************************************************************
-# elmo_client.h:  ELMO A5B EtherCAT Motor Controller                      #
-# Copyright (C) 2016, 2017, Tokyo Opensource Robotics Kyokai Association    #
-#                                                                           #
-# This program is free software; you can redistribute it and/or modify      #
-# it under the terms of the GNU General Public License as published by      #
-# the Free Software Foundation; either version 2 of the License, or         #
-# (at your option) any later version.                                       #
-#                                                                           #
-# This program is distributed in the hope that it will be useful,           #
-# but WITHOUT ANY WARRANTY; without even the implied warranty of            #
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the             #
-# GNU General Public License for more details.                              #
-#                                                                           #
-# You should have received a copy of the GNU General Public License         #
-# along with this program; if not, write to the Free Software               #
-# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA #
-#                                                                           #
-****************************************************************************/
-
 #ifndef ELMO_CLIENT_H
 #define ELMO_CLIENT_H
 
 #include <ethercat_manager/ethercat_manager.h>
 #include <osal.h>
+#include "common.h"
 
 
 // Forward declaration of EtherCatManager
@@ -65,16 +46,6 @@ typedef struct {
 
 } ElmoOutput;
 
-
-typedef enum {NOT_READY, SWITCH_DISABLED, READY_SWITCH, SWITCHED_ON, OPERATION_ENABLED, QUICK_STOP,\
-               FAULT_REACTION, FAULT, UNKNOWN} PDS_STATUS;  // Statusword(6041h) 
-
-typedef enum {NO_MODE_CHANGE, PROFILE_POSITION_MODE, VELOCITY_MODE, PROFILE_VELOCITY_MODE, \
-              TORQUE_PROFILE_MODE, HOMING_MODE, INTERPOLATED_POSITION_MODE, CYCLIC_SYNCHRONOUS_POSITION_MODE, \
-              CYCLIC_SYNCHRONOUS_VELOCITY_MODE, CYCLIC_SYNCHRONOUS_TORQUE_MODE} PDS_OPERATION; // Mode of operation(6061h) 
-
- typedef enum {//HALT, FAULT_RESET, ENABLE_OPERATION, QUICK_STOP, ENABLE_VOLTAGE, SWITCH_ON, 
-} PDS_CONTROL; // Controlworld(6040h)
 
 class ElmoClient
 {
