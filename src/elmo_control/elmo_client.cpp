@@ -432,7 +432,7 @@ void ElmoClient::setInterpolationTimePeriod(int us)
 
 }
 
-int ElmoClient::setInterpolationTimePeriod(){
+int ElmoClient::getInterpolationTimePeriod(){
 	return interpolationTimePeriod;
 }
 

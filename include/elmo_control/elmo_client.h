@@ -150,7 +150,7 @@ public:
    */
   void setInterpolationTimePeriod(int us);
 
-  int setInterpolationTimePeriod();
+  int getInterpolationTimePeriod();
 
   /**
    * \brief print status from input data
