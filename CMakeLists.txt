@@ -46,9 +46,6 @@ INCLUDE_DIRECTORIES(${EIGEN3_INCLUDE_DIR})
 message(STATUS "eigen3 include path: ${EIGEN3_INCLUDE_DIR}")
 ###############################################################
 
-
-# set(EXAMPLES rtprint trivial-periodic)
-
 set(LIB_XENOMAI 
     ${Xenomai_NATIVE_DL_FLAGS}
     ${soem_LIBRARIES}
