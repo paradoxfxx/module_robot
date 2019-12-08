@@ -1,4 +1,3 @@
-#include <stdio.h>
 #include <sys/mman.h>
 #include <native/task.h>
 #include <rtdk.h>

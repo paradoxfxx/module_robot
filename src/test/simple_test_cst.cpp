@@ -102,7 +102,7 @@ int main(int argc, char *argv[])
   struct timespec end;
   double frequence = 0;
 
-  for (int i = 0; i <= 2000; i++ ) {
+  for (int i = 0; i <= 20000; i++ ) {
 
       clock_gettime(CLOCK_REALTIME, &start);
       for (std::vector<elmo_control::ElmoClient*>::iterator it = clients.begin(); it != clients.end(); ++it)
@@ -126,7 +126,7 @@ int main(int argc, char *argv[])
       output.controlword |= 0x0f;
       if ( input.operation_mode == 0x0a)
       {
-      output.target_torque = -100;
+      output.target_torque = 0x1;
 
 
       }

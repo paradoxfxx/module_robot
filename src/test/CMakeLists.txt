@@ -27,4 +27,8 @@ target_link_libraries(joint_impedance_control_test Controller)
 
 add_executable(pid_test pid_test.cpp)
 target_link_libraries(pid_test Controller)
+
+
+add_executable(pos_test pos_test.cpp)
+target_link_libraries(pos_test RobotJointClient)
 ################################################################

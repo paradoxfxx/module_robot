@@ -1,5 +1,5 @@
-#include "ethercat_manager/ethercat_manager.h"
-#include "ethercat_manager/ecat_dc.h"
+#include <ethercat_manager/ethercat_manager.h>
+#include <ethercat_manager/ecat_dc.h>
 
 #include <unistd.h>
 #include <stdio.h>
@@ -20,9 +20,16 @@
 
 namespace
 {
-static const unsigned THREAD_SLEEP_TIME = 100; // 100us
+static const unsigned THREAD_SLEEP_TIME = 1000; // 1000us
 static const unsigned EC_TIMEOUTMON = 500;
 static const int NSEC_PER_SECOND = 1e+9;
+
+static const RTIME period_xenomai = 500000000;  /*500us */
+static const RTIME timeout = 500000000;
+
+RT_MUTEX mutex_;
+RT_TASK task;
+RT_MUTEX_INFO info;
 
 void timespecInc(struct timespec &tick, int nsec)
 {
@@ -95,9 +102,39 @@ void handleErrors()
   }
 }
 
+
+void cycleWorker_xenomai(void *stop_flag_)
+{
+    bool *flag;
+    flag = (bool *)stop_flag_; 
+        
+  	rt_task_set_periodic(NULL, TM_NOW, period_xenomai);
+
+    int expected_wkc;
+    int sent, wkc;
+
+    while(! flag)
+	{
+      
+		rt_task_wait_period(NULL);
+		rt_mutex_acquire(&mutex_,timeout);
+
+		sent = ec_send_processdata();
+		wkc = ec_receive_processdata(EC_TIMEOUTRET);
+		
+		rt_mutex_release(&mutex_);
+		
+		expected_wkc = (ec_group[0].outputsWKC * 2) + ec_group[0].inputsWKC;
+		if (wkc < expected_wkc)
+		{
+			handleErrors();
+		}  
+
+    }
+}
+
 void cycleWorker(boost::mutex& mutex, bool& stop_flag)
 {
-  // 250us in nanoseconds
   double period = THREAD_SLEEP_TIME * 1000;
 
   // get curren ttime
@@ -129,31 +166,40 @@ void cycleWorker(boost::mutex& mutex, bool& stop_flag)
       {
 	      fprintf(stderr, "  overrun: %f\n", overrun_time);
       }
-    //usleep(THREAD_SLEEP_TIME);
-
-
       clock_nanosleep(CLOCK_REALTIME, TIMER_ABSTIME, &tick, NULL);
       timespecInc(tick, period);
  }
 
 }
 
+
+
 } // end of anonymous namespace
 
 
 namespace ethercat {
 
-EtherCatManager::EtherCatManager(const std::string& ifname)
+EtherCatManager::EtherCatManager(const std::string& ifname,bool realtime)
   : ifname_(ifname),
+  	real_time_(realtime),
     num_clients_(0),
     stop_flag_(false)
+
 {
   if (initSoem(ifname))
   {
-    
-    cycle_thread_ = boost::thread(cycleWorker,
-                                  boost::ref(iomap_mutex_),
-                                  boost::ref(stop_flag_));
+    if (real_time_){
+
+		rt_mutex_inquire(&mutex_, &info);
+		rt_task_create(&task, "cycleWorker_xenomai", 0, 80, 0);
+		rt_task_start(&task, &cycleWorker_xenomai, &stop_flag_);
+	}else{
+
+		cycle_thread_ = boost::thread(cycleWorker,
+								boost::ref(iomap_mutex_),
+								boost::ref(stop_flag_));
+	}
+
 
   }
   else
@@ -175,10 +221,14 @@ EtherCatManager::~EtherCatManager()
 
   //stop SOEM, close socket
   ec_close();
-  cycle_thread_.join();
+  if(!real_time_){
+  	cycle_thread_.join();
+  }else{
+	  rt_mutex_delete(&mutex_);
+	  rt_task_delete(&task);
+  }
 }
 
-// #define IF_ELMO(_ec_slave) (((int)_ec_slave.eep_man == 0x066f) && ((((0xf0000000&(int)ec_slave[cnt].eep_id)>>28) == 0x5) || (((0xf0000000&(int)ec_slave[cnt].eep_id)>>28) == 0xD)))
 #define IF_ELMO(_ec_slave) 1
 bool EtherCatManager::initSoem(const std::string& ifname) {
   // Copy string contents because SOEM library doesn't
@@ -263,9 +313,12 @@ bool EtherCatManager::initSoem(const std::string& ifname) {
       idx_txpdo = 0x1a11;
       ret += ec_SDOwrite(cnt, 0x1c13, 0x03, FALSE, sizeof(idx_txpdo), &idx_txpdo, EC_TIMEOUTRXM);
       idx_txpdo = 0x1a1c;
-      ret += ec_SDOwrite(cnt, 0x1c13, 0x04, FALSE, sizeof(idx_txpdo), &idx_txpdo, EC_TIMEOUTRXM); 
-      idx_txpdo = 0x1a1f;
-      ret += ec_SDOwrite(cnt, 0x1c13, 0x05, FALSE, sizeof(idx_txpdo), &idx_txpdo, EC_TIMEOUTRXM);  
+      ret += ec_SDOwrite(cnt, 0x1c13, 0x04, FALSE, sizeof(idx_txpdo), &idx_txpdo, EC_TIMEOUTRXM);
+      idx_txpdo = 0x1a1d;
+      ret += ec_SDOwrite(cnt, 0x1c13, 0x06, FALSE, sizeof(idx_txpdo), &idx_txpdo, EC_TIMEOUTRXM);
+      // idx_txpdo = 0x1a1f;
+      // ret += ec_SDOwrite(cnt, 0x1c13, 0x05, FALSE, sizeof(idx_txpdo), &idx_txpdo, EC_TIMEOUTRXM);
+     
       // set number of assigned PDOs
       num_pdo = 5;
       ret += ec_SDOwrite(cnt, 0x1c13, 0x00, FALSE, sizeof(num_pdo), &num_pdo, EC_TIMEOUTRXM);
@@ -354,35 +407,76 @@ bool EtherCatManager::initSoem(const std::string& ifname) {
 
 void EtherCatManager::write(int slave_no, uint8_t channel, uint8_t value)
 {
-  boost::mutex::scoped_lock lock(iomap_mutex_);
-  ec_slave[slave_no].outputs[channel] = value;
+	if(!real_time_){
+		boost::mutex::scoped_lock lock(iomap_mutex_);
+		ec_slave[slave_no].outputs[channel] = value;
+	}else{
+		rt_mutex_acquire(&mutex_,timeout);
+		ec_slave[slave_no].outputs[channel] = value;
+		rt_mutex_release(&mutex_);
+	}
 }
 
 uint8_t EtherCatManager::readInput(int slave_no, uint8_t channel) const
 {
-  boost::mutex::scoped_lock lock(iomap_mutex_);
-  if (slave_no > ec_slavecount) {
-    fprintf(stderr, "ERROR : slave_no(%d) is larger than ec_slavecount(%d)\n", slave_no, ec_slavecount);
-    exit(1);
-  }
-  if (channel*8 >= ec_slave[slave_no].Ibits) {
-    fprintf(stderr, "ERROR : channel(%d) is larget thatn Input bits (%d)\n", channel*8, ec_slave[slave_no].Ibits);
-    exit(1);
-  }
-  return ec_slave[slave_no].inputs[channel];
+	if(!real_time_){
+		boost::mutex::scoped_lock lock(iomap_mutex_);
+		if (slave_no > ec_slavecount) {
+			fprintf(stderr, "ERROR : slave_no(%d) is larger than ec_slavecount(%d)\n", slave_no, ec_slavecount);
+			exit(1);
+		}
+		if (channel*8 >= ec_slave[slave_no].Ibits) {
+			fprintf(stderr, "ERROR : channel(%d) is larget thatn Input bits (%d)\n", channel*8, ec_slave[slave_no].Ibits);
+			exit(1);
+		}
+	}else{
+		rt_mutex_acquire(&mutex_,timeout);
+		if (slave_no > ec_slavecount) {
+			fprintf(stderr, "ERROR : slave_no(%d) is larger than ec_slavecount(%d)\n", slave_no, ec_slavecount);
+			rt_mutex_release(&mutex_);
+			exit(1);
+		}
+		if (channel*8 >= ec_slave[slave_no].Ibits) {
+			fprintf(stderr, "ERROR : channel(%d) is larget thatn Input bits (%d)\n", channel*8, ec_slave[slave_no].Ibits);
+			rt_mutex_release(&mutex_);
+			exit(1);
+		}
+		rt_mutex_release(&mutex_);	
+	}
+	return ec_slave[slave_no].inputs[channel];
 }
 
 uint8_t EtherCatManager::readOutput(int slave_no, uint8_t channel) const
 {
-  boost::mutex::scoped_lock lock(iomap_mutex_);
-  if (slave_no > ec_slavecount) {
-    fprintf(stderr, "ERROR : slave_no(%d) is larger than ec_slavecount(%d)\n", slave_no, ec_slavecount);
-    exit(1);
-  }
-  if (channel*8 >= ec_slave[slave_no].Obits) {
-    fprintf(stderr, "ERROR : channel(%d) is larget thatn Output bits (%d)\n", channel*8, ec_slave[slave_no].Obits);
-    exit(1);
-  }
+  	
+	if(!real_time_){
+		boost::mutex::scoped_lock lock(iomap_mutex_);
+		if (slave_no > ec_slavecount) {
+			fprintf(stderr, "ERROR : slave_no(%d) is larger than ec_slavecount(%d)\n", slave_no, ec_slavecount);
+			exit(1);
+		}
+		if (channel*8 >= ec_slave[slave_no].Obits) {
+			fprintf(stderr, "ERROR : channel(%d) is larget thatn Output bits (%d)\n", channel*8, ec_slave[slave_no].Obits);
+			exit(1);
+		}
+	}else{
+
+		rt_mutex_acquire(&mutex_,timeout);
+		if (slave_no > ec_slavecount) {
+			fprintf(stderr, "ERROR : slave_no(%d) is larger than ec_slavecount(%d)\n", slave_no, ec_slavecount);
+			rt_mutex_release(&mutex_);
+			exit(1);
+		}
+		if (channel*8 >= ec_slave[slave_no].Obits) {
+			fprintf(stderr, "ERROR : channel(%d) is larget thatn Output bits (%d)\n", channel*8, ec_slave[slave_no].Obits);
+			rt_mutex_release(&mutex_);
+			exit(1);
+		}
+		rt_mutex_release(&mutex_);
+
+	}
+
+
   return ec_slave[slave_no].outputs[channel];
 }
 
@@ -390,29 +484,48 @@ uint8_t EtherCatManager::readOutput(int slave_no, uint8_t channel) const
 
 template <typename T>
 uint8_t EtherCatManager::writeSDO(int slave_no, uint16_t index, uint8_t subidx, T value) const
-{
-  int ret;
-  ret = ec_SDOwrite(slave_no, index, subidx, FALSE, sizeof(value), &value, EC_TIMEOUTSAFE);
-  return ret;
+{	
+	int ret;
+	if(!real_time_){
+		boost::mutex::scoped_lock lock(iomap_mutex_);	
+		ret = ec_SDOwrite(slave_no, index, subidx, FALSE, sizeof(value), &value, EC_TIMEOUTSAFE);
+	}else{
+		rt_mutex_acquire(&mutex_,timeout);
+		ret = ec_SDOwrite(slave_no, index, subidx, FALSE, sizeof(value), &value, EC_TIMEOUTSAFE);
+		rt_mutex_release(&mutex_);
+	}
+		return ret;
 }
 
 template <typename T>
 T EtherCatManager::readSDO(int slave_no, uint16_t index, uint8_t subidx) const
 {
-  int ret, l;
-  T val;
-  l = sizeof(val);
-  ret = ec_SDOread(slave_no, index, subidx, FALSE, &l, &val, EC_TIMEOUTRXM);
-  if ( ret <= 0 ) { // ret = Workcounter from last slave response
-    fprintf(stderr, "Failed to read from ret:%d, slave_no:%d, index:0x%04x, subidx:0x%02x\n", ret, slave_no, index, subidx);
-  }
-  return val;
+	int ret, l;
+	T val;
+	l = sizeof(val);
+	if(!real_time_){
+		boost::mutex::scoped_lock lock(iomap_mutex_);	
+		ret = ec_SDOread(slave_no, index, subidx, FALSE, &l, &val, EC_TIMEOUTRXM);
+	}else{
+		rt_mutex_acquire(&mutex_,timeout);
+		ret = ec_SDOread(slave_no, index, subidx, FALSE, &l, &val, EC_TIMEOUTRXM);
+		rt_mutex_release(&mutex_);
+	}
+	if ( ret <= 0 ) { // ret = Workcounter from last slave response
+		fprintf(stderr, "Failed to read from ret:%d, slave_no:%d, index:0x%04x, subidx:0x%02x\n", ret, slave_no, index, subidx);
+	}
+	return val;
 }
 
 int EtherCatManager::getNumClinets() const
 {
   return num_clients_;
 }
+
+bool EtherCatManager::ifRealtime() const{
+	return real_time_;
+}
+
 
 
 // void EtherCatManager::initDistributeClock()

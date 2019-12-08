@@ -12,11 +12,12 @@
 
 #include <alchemy/task.h>
 #include <alchemy/timer.h>
-#include <alchemy/sem.h>
-#include <boilerplate/trace.h>
-#include <xenomai/init.h>
-#include <trank/rtdk.h>
-#include <osal.h>
+#include <alchemy/mutex.h>
+// #include <alchemy/sem.h>
+// #include <boilerplate/trace.h>
+// #include <xenomai/init.h>
+// #include <trank/rtdk.h>
+// #include <osal.h>
 
 namespace ethercat {
 
@@ -54,7 +55,8 @@ public:
     * Constructor can throw EtherCatError exception if SOEM could not be 
     * initialized.
     */
-    EtherCatManager(const std::string& ifname);
+    EtherCatManager(const std::string& ifname, bool realtime = false);
+
 
     ~EtherCatManager();
 
@@ -110,7 +112,7 @@ public:
     /**
     * \brief get the number of clients
     */
-    int getNumClients() const;
+    int getNumClinets() const;
 
     // /**
     // * \brief init the DC time
@@ -127,12 +129,18 @@ public:
     // */ 
     // void updateDistributeClock();
 
+    /*
+        brief : 
+     */
+    bool ifRealtime() const;
+
 
     // void sent_receive_eth_msg();
 
 private:
 
     bool initSoem(const std::string& ifname);
+
 
     const std::string ifname_;
     uint8_t iomap_[4096];
@@ -153,15 +161,8 @@ private:
     long ethercat_time;
     int wkc;
 
-    RTIME cycletime;
-    RTIME cur_time;
-    RTIME cur_cycle_cnt;
-    RTIME cycle_time;
-    RTIME remain_time;
-    RTIME dc_remain_time;
-    RTIME rt_ts;
-    RTIME now;
-    RTIME previous;
+    bool real_time_;
+
 
 };
 

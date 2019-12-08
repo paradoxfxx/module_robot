@@ -1,4 +1,4 @@
-#include "robot_control/robot_client.h"
+#include <robot_control/robot_joint_client.h>
 
 static const int NSEC_PER_SECOND = 1e+9;
 
@@ -18,10 +18,10 @@ int main(int argc, char *argv[]){
 
     ethercat::EtherCatManager manager(NETWORK_CARD_NAME);
 	
-	robot_control::RobotClient* joint1;
-    joint1 = new robot_control::RobotClient (manager , 1);
+	robot_control::RobotJointClient* joint1;
+    joint1 = new robot_control::RobotJointClient (manager , 1);
 
-	joint1->changeOPmode(CYCLIC_SYNCHRONOUS_TORQUE_MODE);
+	joint1->changeOPmode(CYCLIC_SYNCHRONOUS_POSITION_MODE);
 
 	double period = 3e+5;  //300us
 	struct timespec tick;
@@ -29,21 +29,20 @@ int main(int argc, char *argv[]){
 	timespecInc(tick, period);
 
 
-	for(size_t i = 0; i < 2000; i++){
+	for(size_t i = 0; i < 20000; i++){
 		
-		joint1->sentorque(200); //500mN.m
 
 		if(i%10 == 0 ){
 
-			joint1->getfeedback();
-			ROS_INFO("pos: %f deg !.\n" , joint1->getpos());
-			ROS_INFO("vel: %f deg/s !.\n" , joint1->getvel());
-			ROS_INFO("torque: %f mN.m !.\n",joint1->getorque());
+			printf("pos: %f deg !.\n" , joint1->getMotorPos());
+			printf("vel: %f deg/s !.\n" , joint1->getMotorVel());
+			printf("torque: %f mN.m !.\n",joint1->getMotorTorque());
 			
 		}
 
 		clock_gettime(CLOCK_REALTIME, &tick);
 		timespecInc(tick, period);
+        usleep(1000);
 	}
 
 	delete joint1;

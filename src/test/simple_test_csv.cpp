@@ -113,7 +113,7 @@ int main(int argc, char *argv[])
       output.controlword |= 0x0f;
       if ( input.operation_mode == 0x09 )
       {
-      output.target_velocity =   0x1000;
+      output.target_velocity =   0x2000;
       }
       client->writeOutputs(output);
       } // for clients

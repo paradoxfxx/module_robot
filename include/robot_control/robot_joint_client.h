@@ -24,40 +24,77 @@ public:
     * \unit degree
     * \return void
     */
-    void sentpos(double pos);
+    void sentpos(float pos);
 
     /**
     * \brief sent velocity to the motor
     * \unit degree/s
     * \return void
     */
-    void sentvel(double vel);
+    void sentvel(float vel);
 
     /**
     * \brief sent torque to the motor
     * \unit mN.m
     * \return void
     */
-    void sentorque(double torque);
+    void sentorque(float torque);
+
+    /**
+    * \brief sent trajectory to the motor
+    * \unit degree
+    * \return int(0:success, -1:error)
+    */
+    int sentPosTraj(std::vector<float>points);
 
     /**
     * \brief change the operation mode. 
     * \return bool
     */
-    bool changeOPmode(int opmode);
+    bool changeOPmode(uint8 opmode);
 
     /**
-    * \brief get the link pos , vel , torque
-    * \unit degree ,degree/s , mN.m
-    * \return double
+    * \brief get the motor pos 
+    * \unit degree
+    * \return float
     */
-    void getfeedback();
+    float getMotorPos() const;
 
-    double getpos() const;
+    /**
+    * \brief get the motor vel
+    * \unit degree/s
+    * \return float
+    */
+    float getMotorVel() const;
 
-    double getvel() const;
+    /**
+    * \brief get the motor torque
+    * \unit  mN.m
+    * \return float
+    */
+    float getMotorTorque() const;
 
-    double getorque() const;
+    
+    /**
+    * \brief get the joint pos 
+    * \unit degree
+    * \return float
+    */
+    float getJointPos() const;
+
+    /**
+    * \brief get the joint vel
+    * \unit degree/s
+    * \return float
+    */
+    float getJointVel() const;
+
+    /**
+    * \brief get the joint torque sensor value.
+    * \unit mN.m
+    * \return float
+    */
+    float getJointTorque() const;
 
     /**
     * \brief shutdown the communication. 
@@ -73,9 +110,10 @@ private:
     elmo_control::ElmoInput input;
     elmo_control::ElmoOutput output;
 
-    double pos_f;
-    double vel_f;
-    double torque_f;
+    float pos_f;
+    float vel_f;
+    float torque_f;
+
 };
 
 

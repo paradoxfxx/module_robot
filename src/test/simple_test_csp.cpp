@@ -92,7 +92,7 @@ int main(int argc, char *argv[])
   timespecInc(tick, period);
 
 
-  for (int i = 0; i <= 20000; i++ ) {
+  for (int i = 0; i <= 2000; i++ ) {
 
       for (std::vector<elmo_control::ElmoClient*>::iterator it = clients.begin(); it != clients.end(); ++it)
         {
@@ -111,7 +111,8 @@ int main(int argc, char *argv[])
       output.controlword |= 0x0f;
       if ( input.operation_mode == 0x08 )
       {
-        output.target_position = input.position_actual_value +0x400;
+        output.target_position = input.position_actual_value +0x500;
+
         // printf("1111\n");
       }
       client->writeOutputs(output);

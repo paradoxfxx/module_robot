@@ -22,15 +22,16 @@ namespace elmo_control
  */
 typedef struct {
   // input
-  uint32 position_actual_value;		// 6064h : Position actual value
-  uint32 position_follow_error_value;  //60f4
-  uint16 torque_actual_value;		// 6077h : Torque actual value
-  uint16 statusword;			// 6041h : Statusword
-  uint8  operation_mode;		// 6061h : Modes of operation display
-  uint32 velocity_sensor_actual_value; //6069
-  uint32 velocity_actual_value;		// 606Ch : Velocity actual value
-  uint32 digital_inputs;		// 60FDh : Digital inputs
-  uint32 current_actual_value; // 6078
+  uint32 position_actual_value;		      // 6064h : Position actual value
+  uint32 position_follow_error_value;   //60f4
+  uint16 torque_actual_value;		        // 6077h : Torque actual value
+  uint16 statusword;			              // 6041h : Statusword
+  uint8  operation_mode;		            // 6061h : Modes of operation display
+  uint32 velocity_sensor_actual_value;  //6069
+  uint32 velocity_actual_value;	  	    // 606Ch : Velocity actual value
+  uint32 digital_inputs;	            	// 60FDh : Digital inputs
+  uint16 analog_input;                  // 2205 : Analog input
+  // uint32 current_actual_value;          // 6078  : Current actual
 } ElmoInput;
 
 typedef struct {
@@ -118,23 +119,38 @@ public:
   void setProfileVelocity(uint32_t val);
 
 
-
   void setMaxVelocity(uint32_t val);
-  
+
+  /*
+   * \brief get the absolute position encoder Pos by SDO 
+   * \return uint32_t
+   */
+  uint32_t getAbsolutePos()const;
+
+ /*
+   * \brief get the absolute position encoder Vel by SDO 
+   * \return uint32_t
+   */
+  uint32_t getAbsoluteVel()const;
+
+
   /*
    * \brief set motor rate torque  (6076h / 00h)
    * \return void
    */
-   void setMotorRateTorque(uint32_t rate_torque);
+  void setMotorRateTorque(uint32_t rate_torque);
 
-   uint32_t readMotorRateTorque();
+  uint32_t readMotorRateTorque()const;
 
-   void set_target_torque(uint);
+  void set_target_torque(uint);
+  
   /*
-   * \brief set Interpolation Time Period 250, 500, 1000, 2000, 4000 us
+   * \brief set Interpolation Time Period  1000, 2000, 4000 us
    * \return void
    */
   void setInterpolationTimePeriod(int us);
+
+  int setInterpolationTimePeriod();
 
   /**
    * \brief print status from input data
@@ -151,8 +167,6 @@ public:
    */
   void printPDSControl(const ElmoInput input) const;
 
-
-private:
   /**
    * \brief get status from input data
    * \return status
@@ -171,9 +185,27 @@ private:
    */
   PDS_STATUS getPDSControl(const ElmoInput input) const;
 
+   /**
+   * \brief read the interpolation buff actual size
+   * \return uint8
+   */
+  uint8 readTrajBuffSize() const;
+
+  /**
+   * \brief set the maxmuim buff size of interpolation.
+   * \return int
+   */
+  int setInterpolationBuffSize();
+
+private:
+
+
   ethercat::EtherCatManager& manager_;
 
   const int slave_no_;
+
+  int interpolationTimePeriod;
+
 
 
 };

@@ -1,6 +1,6 @@
 add_library(RobotJointClient 
 
-    robot_client.cpp
+    robot_joint_client.cpp
 )
 target_link_libraries(RobotJointClient 
     EthercatManager
