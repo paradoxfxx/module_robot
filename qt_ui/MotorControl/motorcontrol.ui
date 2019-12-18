@@ -63,7 +63,7 @@
     </rect>
    </property>
    <property name="text">
-    <string>Clear Error</string>
+    <string>Stop</string>
    </property>
   </widget>
   <widget class="QLabel" name="label_5">
@@ -258,7 +258,7 @@
     </rect>
    </property>
    <property name="currentIndex">
-    <number>0</number>
+    <number>2</number>
    </property>
    <widget class="QWidget" name="tab">
     <attribute name="title">
@@ -272,6 +272,15 @@
        <width>100</width>
        <height>30</height>
       </rect>
+     </property>
+     <property name="toolTip">
+      <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;input range:+ - 360deg &lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+     </property>
+     <property name="statusTip">
+      <string/>
+     </property>
+     <property name="text">
+      <string/>
      </property>
     </widget>
     <widget class="QLabel" name="label_11">
@@ -323,7 +332,7 @@
       </rect>
      </property>
      <property name="text">
-      <string>sent command</string>
+      <string>Execute</string>
      </property>
     </widget>
     <widget class="QLineEdit" name="lineEdit_7">
@@ -334,6 +343,18 @@
        <width>100</width>
        <height>30</height>
       </rect>
+     </property>
+     <property name="toolTip">
+      <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;input range : 0 - 100 deg/s&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+     </property>
+     <property name="statusTip">
+      <string/>
+     </property>
+     <property name="whatsThis">
+      <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;input range: (0 - 100)deg/s&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+     </property>
+     <property name="text">
+      <string/>
      </property>
     </widget>
     <widget class="QLabel" name="label_14">
@@ -362,6 +383,15 @@
        <width>100</width>
        <height>30</height>
       </rect>
+     </property>
+     <property name="toolTip">
+      <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;input range: 0 - 100 deg/s&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+     </property>
+     <property name="whatsThis">
+      <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;input range: (0 - 100)deg/s&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+     </property>
+     <property name="text">
+      <string/>
      </property>
     </widget>
     <widget class="QLabel" name="label_15">
@@ -400,7 +430,7 @@
       </rect>
      </property>
      <property name="text">
-      <string>sent command</string>
+      <string>Execute</string>
      </property>
     </widget>
    </widget>
@@ -417,6 +447,15 @@
        <height>30</height>
       </rect>
      </property>
+     <property name="toolTip">
+      <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;input range: + - 1500 mN.m&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+     </property>
+     <property name="whatsThis">
+      <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;input range:(+ - 1200mN.m)&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+     </property>
+     <property name="text">
+      <string/>
+     </property>
     </widget>
     <widget class="QPushButton" name="pushButton_8">
      <property name="geometry">
@@ -428,7 +467,7 @@
       </rect>
      </property>
      <property name="text">
-      <string>sent command</string>
+      <string>Execute</string>
      </property>
     </widget>
     <widget class="QLabel" name="label_17">
