@@ -1,0 +1,7 @@
+<RCC>
+    <qresource prefix="/">
+        <file>../icon/brain.ico</file>
+        <file>../icon/robot.ico</file>
+        <file>../icon/think.ico</file>
+    </qresource>
+</RCC>

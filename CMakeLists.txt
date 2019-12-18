@@ -1,8 +1,8 @@
 cmake_minimum_required (VERSION 2.8.12)
 
 add_compile_options(-std=c++11)
-
-project(modular_robot)
+set(PRO_NAME modular_robot)
+project(${PRO_NAME})
 
 #SET(CMAKE_BUILD_TYPE DEBUG)
 SET(CMAKE_BUILD_TYPE RELEASE)
@@ -55,4 +55,5 @@ set(LIB_XENOMAI
 ############### source and test ######################
 include_directories( ${PROJECT_SOURCE_DIR}/include )
 add_subdirectory( src )
+add_subdirectory(qt_ui)
 ######################################################
