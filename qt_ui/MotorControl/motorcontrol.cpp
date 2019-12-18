@@ -7,6 +7,10 @@ MotorControl::MotorControl(QWidget *parent) :
 {
     ui->setupUi(this);
     ui->pushButton_2->setEnabled(0);
+    ui->pushButton_3->setEnabled(0);
+    ui->pushButton_4->setEnabled(0);
+    ui->tabWidget->setEnabled(0);
+
 }
 
 MotorControl::~MotorControl()
@@ -17,24 +21,30 @@ MotorControl::~MotorControl()
 void MotorControl::on_pushButton_clicked()
 {
     ui->listWidget->addItem("motor start ...");
+    ui->pushButton->setEnabled(0);
     ui->pushButton_2->setEnabled(1);
+    ui->pushButton_3->setEnabled(1);
+    ui->pushButton_4->setEnabled(1);
+    ui->tabWidget->setEnabled(1);
 
 }
+
+
 
 void MotorControl::on_pushButton_4_clicked()
 {
     ui->listWidget->addItem("clear error...");
 }
 
-void MotorControl::on_pushButton_2_clicked()
-{
-    ui->listWidget->addItem("motor halt...");
-}
-
-
 void MotorControl::on_pushButton_3_clicked()
 {
-   ui->listWidget->addItem("motor quick stop...");
+    ui->listWidget->addItem("motor quick stop...");
+    ui->pushButton->setEnabled(1);
+    ui->pushButton_2->setEnabled(0);
+    ui->pushButton_3->setEnabled(0);
+    ui->pushButton_4->setEnabled(0);
+    ui->tabWidget->setEnabled(0);
+
 }
 
 
@@ -52,4 +62,13 @@ void MotorControl::on_tabWidget_tabBarClicked(int index)
 void MotorControl::on_pushButton_5_clicked()
 {
     ui->listWidget->clear();
+}
+
+void MotorControl::on_pushButton_2_clicked(bool checked)
+{
+    if(checked){
+        ui->listWidget->addItem("motor halt...");
+    }else{
+        ui->listWidget->addItem("motor continue...");
+    }
 }
