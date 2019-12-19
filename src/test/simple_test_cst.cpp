@@ -34,7 +34,8 @@ int main(int argc, char *argv[])
     printf("MINAS Simple Test using SOEM (Simple Open EtherCAT Master)\n");
 
   /* start slaveinfo */
-  ethercat::EtherCatManager manager(ifname);
+  bool realtime = true;
+  ethercat::EtherCatManager manager(ifname,realtime);
   std::vector<elmo_control::ElmoClient *> clients;
     for (int i = 0; i < manager.getNumClinets(); i++ )
     {
@@ -45,12 +46,11 @@ int main(int argc, char *argv[])
       elmo_control::ElmoClient* client = (*it);
       // clear error
       client->reset();
-      client->setInterpolationTimePeriod(250);     // 1 msec
+      client->setInterpolationTimePeriod(1000);     // 1 msec
 
       printf("rate torque: %d\n",client->readMotorRateTorque());
       client->setMotorRateTorque(1000);
       client->setMaxVelocity(1000); 
-      // client->setMotorRateTorque();
       // servo on
       client->servoOn();
       // get current positoin
@@ -92,11 +92,11 @@ int main(int argc, char *argv[])
 
     }
   //  nanoseconds
-  double period = 3e+5;  //300us
+  // double period = 3e+5;  //300us
   // get curren ttime
-  struct timespec tick;
-  clock_gettime(CLOCK_REALTIME, &tick);
-  timespecInc(tick, period);
+  // struct timespec tick;
+  // clock_gettime(CLOCK_REALTIME, &tick);
+  // timespecInc(tick, period);
 
   struct timespec start;
   struct timespec end;
@@ -104,7 +104,7 @@ int main(int argc, char *argv[])
 
   for (int i = 0; i <= 20000; i++ ) {
 
-      clock_gettime(CLOCK_REALTIME, &start);
+      // clock_gettime(CLOCK_REALTIME, &start);
       for (std::vector<elmo_control::ElmoClient*>::iterator it = clients.begin(); it != clients.end(); ++it)
         {
       elmo_control::ElmoClient* client = (*it);
@@ -126,26 +126,28 @@ int main(int argc, char *argv[])
       output.controlword |= 0x0f;
       if ( input.operation_mode == 0x0a)
       {
-      output.target_torque = 0x1;
-
+        output.target_torque = TORQUE_USER_TO_MOTOR(-50);
+        // output.target_torque =  ;
+        printf("%04x\n",output.target_torque);
 
       }
       client->writeOutputs(output);
       } // for clients
+			rt_timer_spin(DEFAULT_INTERPOLATION_TIME_PERIOD);  
 
-      timespecInc(tick, period);
-      // check overrun
-      struct timespec before;
-      clock_gettime(CLOCK_REALTIME, &before);
-      double overrun_time = (before.tv_sec + double(before.tv_nsec)/NSEC_PER_SECOND) -  (tick.tv_sec + double(tick.tv_nsec)/NSEC_PER_SECOND);
-      if (overrun_time > 0.0)
-        {
-            fprintf(stderr, "  overrun: %f", overrun_time);
-        }
-      clock_nanosleep(CLOCK_REALTIME, TIMER_ABSTIME, &tick, NULL);
+      // timespecInc(tick, period);
+      // // check overrun
+      // struct timespec before;
+      // clock_gettime(CLOCK_REALTIME, &before);
+      // double overrun_time = (before.tv_sec + double(before.tv_nsec)/NSEC_PER_SECOND) -  (tick.tv_sec + double(tick.tv_nsec)/NSEC_PER_SECOND);
+      // if (overrun_time > 0.0)
+      //   {
+      //       fprintf(stderr, "  overrun: %f", overrun_time);
+      //   }
+      // clock_nanosleep(CLOCK_REALTIME, TIMER_ABSTIME, &tick, NULL);
 
-      clock_gettime(CLOCK_REALTIME, &end);
-      frequence += NSEC_PER_SECOND/(end.tv_nsec - start.tv_nsec);
+      // clock_gettime(CLOCK_REALTIME, &end);
+      // frequence += NSEC_PER_SECOND/(end.tv_nsec - start.tv_nsec);
 
   }
 
@@ -158,8 +160,8 @@ int main(int argc, char *argv[])
       client->servoOff();
     }
 
-  frequence = frequence / 2000;
-  printf("\n\n\nsoft frequence: %f hz \n\n",frequence );
+  // frequence = frequence / 2000;
+  // printf("\n\n\nsoft frequence: %f hz \n\n",frequence );
   printf("End program\n");
 
   return 0;

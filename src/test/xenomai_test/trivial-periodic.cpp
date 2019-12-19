@@ -23,9 +23,11 @@ RT_MUTEX mute;
 RTIME timeout;
 
 
+
+bool stop_flag;
 /* NOTE: error handling omitted. */
 
-void demo(void *arg)
+void demo(void *)
 {
 	RTIME now, previous;
 
@@ -37,8 +39,8 @@ void demo(void *arg)
 	rt_task_set_periodic(NULL, TM_NOW, 1000000000);
 	previous = rt_timer_read();
 	rt_mutex_create(&mute, "ethercat_manager");
-	
 
+	
 	while (1) {
 		rt_task_wait_period(NULL);
 		now = rt_timer_read();
@@ -51,30 +53,33 @@ void demo(void *arg)
 		// rt_task_sleep(100000);  // 100 us
 
 		rt_mutex_acquire(&mute,timeout);
-		printf("Time since last turn: %ld.%06ld ms\n",
-		       (long)(now - previous) / 1000000,
-		       (long)(now - previous) % 1000000);
+		printf("Time since last turn: %ld.%06ld us\n",
+		       (long)(now - previous) / 1000,
+		       (long)(now - previous) % 1000);
 		       previous = now;
 
 		fp = fopen("./test.txt", "w+");
    		fputs("This is testing for fputs...\n", fp);
 
-		// rt_task_sleep(400000000);  // 400 ms
-		rt_timer_spin(400000000);  /* 400 ms */
 
 		fclose(fp);
 		rt_mutex_release(&mute);
-
-		
 	}
+	
 }
 
 
-void demo_2(){
+void demo_2(void *stop_flag){
+
 	rt_task_set_periodic(NULL, TM_NOW, 500000000);
 	RT_MUTEX_INFO info;
 	int ret;
-	while(1){
+	RTIME now, previous;
+
+	previous = rt_timer_read();
+
+	while(! stop_flag){
+
 		rt_task_wait_period(NULL);
 
 		ret = rt_mutex_inquire(&mute, &info);
@@ -86,28 +91,38 @@ void demo_2(){
 
 			fp = fopen("./test.txt", "w+");
 
-			rt_task_sleep(400000000);  
-
+			now = rt_timer_read();
 			fclose(fp);
 
-			rt_mutex_release(&mute);
+			printf("time pass : %.4f ms \n", (now - previous) / 1000000.0);
+			
 
+			rt_mutex_release(&mute);
+			
 		}
 	}
+	printf("stop demo_2 task!!!\n");
 
 }
 
 void catch_signal(int sig)
-{
+{	
+	stop_flag = true;
+	rt_task_sleep(3000000000);  // 3s
+	rt_mutex_delete(&mute);
+
+	rt_task_delete(&demo_task);
+	rt_task_delete(&demo_task_1);
+	printf("delete task & mutex....\n");
 }
 
 int main(int argc, char* argv[])
+
 {
-	signal(SIGTERM, catch_signal);
 	signal(SIGINT, catch_signal);
 	int success;
 	RTIME timeout = 2000000000;  // 2s
-
+	stop_flag = false;
 	FILE *fp = NULL;
 	/* Avoids memory swapping for this program */
 	mlockall(MCL_CURRENT|MCL_FUTURE);
@@ -119,9 +134,9 @@ int main(int argc, char* argv[])
 	 *            priority,
 	 *            mode (FPU, start suspended, ...)
 	 */
-	success = rt_task_create(&demo_task, "trivial", 0, 9, 0);
+	success = rt_task_create(&demo_task, "trivial", 0, 13, 0);
 	rt_printf("task ceate: %s\n",success ? "false" : "success");
-	success = rt_task_create(&demo_task_1, "trivial_1", 0, 10, 0);
+	success = rt_task_create(&demo_task_1, "trivial_1", 0, 12, 0);
 	rt_printf("task ceate: %s\n",success ? "false" : "success");
 
 	/*
@@ -129,17 +144,13 @@ int main(int argc, char* argv[])
 	 *            task function,
 	 *            function argument
 	 */
-	success = rt_task_start(&demo_task, &demo, NULL);
+	success = rt_task_start(&demo_task, &demo, (void * )NULL);
 	rt_printf("task start: %s\n",success ? "false" : "success");
-	success = rt_task_start(&demo_task_1, &demo_2, NULL);
+	success = rt_task_start(&demo_task_1, &demo_2,  (void *)stop_flag);
 	rt_printf("task start: %s\n",success ? "false" : "success");
-
 	pause();
 
-	rt_mutex_delete(&mute);
 
-	rt_task_delete(&demo_task);
-	rt_task_delete(&demo_task_1);
 
 	return 0;
 }

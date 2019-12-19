@@ -8,17 +8,10 @@ int main(int argc, char *argv[]){
 	robot_control::RobotJointClient* joint1;
     joint1 = new robot_control::RobotJointClient (manager , 1);
 
-	// joint1->changeOPmode(TORQUE_PROFILE_MODE);
-	// joint1->changeOPmode(PROFILE_VELOCITY_MODE);
-	// joint1->changeOPmode(PROFILE_POSITION_MODE);
-	// joint1->changeOPmode(CYCLIC_SYNCHRONOUS_TORQUE_MODE);
-	joint1->changeOPmode(CYCLIC_SYNCHRONOUS_POSITION_MODE);
-	// joint1->changeOPmode(CYCLIC_SYNCHRONOUS_VELOCITY_MODE);
+	joint1->changeOPmode(PROFILE_VELOCITY_MODE);
 	joint1->get_feedback();
 
-	float pos = joint1->getMotorPos();
-	// joint1->sentPos(pos + 5000);
-	// joint1->sentVel(720);
+	joint1->sentVel(720);
 
 
 	for(int i = 0; i < 50000; i++){
@@ -32,12 +25,7 @@ int main(int argc, char *argv[]){
 			printf("status word %04x .\n", joint1->getStatusWord());
 			printf("op mode  %d .\n", joint1->readOpmode());
 
-			// printf("Buff size number: %d\n",joint1->getBuffSize());
-			// printf("Buff actual pos: %d\n",joint1->getBuffPos());			
 		}
-		// joint1->sentTorque(200);
-		// joint1->sentVel(-720);
-		joint1->sentPos(pos + 10);
 
 		rt_timer_spin(DEFAULT_INTERPOLATION_TIME_PERIOD);
 

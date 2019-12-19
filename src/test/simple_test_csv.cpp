@@ -32,10 +32,10 @@ int main(int argc, char *argv[])
     int operation_mode = 0x09; //(csv)
     std::string ifname("enp4s0");
     printf("MINAS Simple Test using SOEM (Simple Open EtherCAT Master)\n");
-
-  /* start slaveinfo */
-  ethercat::EtherCatManager manager(ifname);
-  std::vector<elmo_control::ElmoClient *> clients;
+    bool realtime = true;
+    /* start slaveinfo */
+    ethercat::EtherCatManager manager(ifname,realtime);
+    std::vector<elmo_control::ElmoClient *> clients;
     for (int i = 0; i < manager.getNumClinets(); i++ )
     {
       clients.push_back(new elmo_control::ElmoClient(manager, i+1));
@@ -89,9 +89,10 @@ int main(int argc, char *argv[])
   //  nanoseconds
   double period = 3e+5;
   // get curren ttime
-  struct timespec tick;
-  clock_gettime(CLOCK_REALTIME, &tick);
-  timespecInc(tick, period);
+  // struct timespec tick;
+  // clock_gettime(CLOCK_REALTIME, &tick);
+  // timespecInc(tick, period);
+	rt_timer_spin(DEFAULT_INTERPOLATION_TIME_PERIOD);
 
 
   for (int i = 0; i <= 20000; i++ ) {
@@ -113,22 +114,23 @@ int main(int argc, char *argv[])
       output.controlword |= 0x0f;
       if ( input.operation_mode == 0x09 )
       {
-      output.target_velocity =   0x2000;
+      output.target_velocity =   DATA_TO_COUNT(3600);
       }
       client->writeOutputs(output);
       } // for clients
 
+	    rt_timer_spin(DEFAULT_INTERPOLATION_TIME_PERIOD);
 
-      timespecInc(tick, period);
+      // timespecInc(tick, period);
       // check overrun
-      struct timespec before;
-      clock_gettime(CLOCK_REALTIME, &before);
-      double overrun_time = (before.tv_sec + double(before.tv_nsec)/NSEC_PER_SECOND) -  (tick.tv_sec + double(tick.tv_nsec)/NSEC_PER_SECOND);
-      if (overrun_time > 0.0)
-        {
-            fprintf(stderr, "  overrun: %f", overrun_time);
-        }
-      clock_nanosleep(CLOCK_REALTIME, TIMER_ABSTIME, &tick, NULL);
+      // struct timespec before;
+      // clock_gettime(CLOCK_REALTIME, &before);
+      // double overrun_time = (before.tv_sec + double(before.tv_nsec)/NSEC_PER_SECOND) -  (tick.tv_sec + double(tick.tv_nsec)/NSEC_PER_SECOND);
+      // if (overrun_time > 0.0)
+      //   {
+      //       fprintf(stderr, "  overrun: %f", overrun_time);
+      //   }
+      // clock_nanosleep(CLOCK_REALTIME, TIMER_ABSTIME, &tick, NULL);
   }
 
   for (std::vector<elmo_control::ElmoClient *>::iterator it = clients.begin(); it != clients.end(); ++it)
