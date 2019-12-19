@@ -24,12 +24,11 @@ static const unsigned THREAD_SLEEP_TIME = 1000; // 1000us
 static const unsigned EC_TIMEOUTMON = 500;
 static const int NSEC_PER_SECOND = 1e+9;
 
-static const RTIME period_xenomai = 500000000;  /*500us */
-static const RTIME timeout = 500000000;
+static const RTIME period_xenomai = 900000;  /*900us */
+static const RTIME timeout = 1000000; /*1 ms */
 
 RT_MUTEX mutex_;
 RT_TASK task;
-RT_MUTEX_INFO info;
 
 void timespecInc(struct timespec &tick, int nsec)
 {
@@ -103,17 +102,16 @@ void handleErrors()
 }
 
 
-void cycleWorker_xenomai(void *stop_flag_)
+void cycleWorker_xenomai(void *)
 {
-    bool *flag;
-    flag = (bool *)stop_flag_; 
+
         
   	rt_task_set_periodic(NULL, TM_NOW, period_xenomai);
 
     int expected_wkc;
     int sent, wkc;
 
-    while(! flag)
+    while(1)
 	{
       
 		rt_task_wait_period(NULL);
@@ -121,54 +119,53 @@ void cycleWorker_xenomai(void *stop_flag_)
 
 		sent = ec_send_processdata();
 		wkc = ec_receive_processdata(EC_TIMEOUTRET);
-		
+
 		rt_mutex_release(&mutex_);
-		
+
 		expected_wkc = (ec_group[0].outputsWKC * 2) + ec_group[0].inputsWKC;
 		if (wkc < expected_wkc)
 		{
 			handleErrors();
 		}  
-
-    }
+  	}
 }
 
 void cycleWorker(boost::mutex& mutex, bool& stop_flag)
 {
-  double period = THREAD_SLEEP_TIME * 1000;
+	double period = THREAD_SLEEP_TIME * 1000;
 
-  // get curren ttime
-  struct timespec tick;
-  clock_gettime(CLOCK_REALTIME, &tick);
-  timespecInc(tick, period);
-  
+	// get curren ttime
+	struct timespec tick;
+	clock_gettime(CLOCK_REALTIME, &tick);
+	timespecInc(tick, period);
 
-  while (!stop_flag)
-  {
-    int expected_wkc = (ec_group[0].outputsWKC * 2) + ec_group[0].inputsWKC;
-    int sent, wkc;
 
-    {
-      boost::mutex::scoped_lock lock(mutex);
-      sent = ec_send_processdata();
-      wkc = ec_receive_processdata(EC_TIMEOUTRET);
-    }
-    
-    if (wkc < expected_wkc)
-    {
-      handleErrors();
-    }
-    // check overrun
-    struct timespec before;
-    clock_gettime(CLOCK_REALTIME, &before);
-    double overrun_time = (before.tv_sec + double(before.tv_nsec)/NSEC_PER_SECOND) -  (tick.tv_sec + double(tick.tv_nsec)/NSEC_PER_SECOND);
-    if (overrun_time > 0.0)
-      {
-	      fprintf(stderr, "  overrun: %f\n", overrun_time);
-      }
-      clock_nanosleep(CLOCK_REALTIME, TIMER_ABSTIME, &tick, NULL);
-      timespecInc(tick, period);
- }
+	while (!stop_flag)
+	{
+		int expected_wkc = (ec_group[0].outputsWKC * 2) + ec_group[0].inputsWKC;
+		int sent, wkc;
+
+		{
+			boost::mutex::scoped_lock lock(mutex);
+			sent = ec_send_processdata();
+			wkc = ec_receive_processdata(EC_TIMEOUTRET);
+		}
+
+		if (wkc < expected_wkc)
+		{
+			handleErrors();
+		}
+		// check overrun
+		struct timespec before;
+		clock_gettime(CLOCK_REALTIME, &before);
+		double overrun_time = (before.tv_sec + double(before.tv_nsec)/NSEC_PER_SECOND) -  (tick.tv_sec + double(tick.tv_nsec)/NSEC_PER_SECOND);
+		if (overrun_time > 0.0)
+			{
+				fprintf(stderr, "  overrun: %f\n", overrun_time);
+			}
+		clock_nanosleep(CLOCK_REALTIME, TIMER_ABSTIME, &tick, NULL);
+		timespecInc(tick, period);
+	}
 
 }
 
@@ -190,9 +187,9 @@ EtherCatManager::EtherCatManager(const std::string& ifname,bool realtime)
   {
     if (real_time_){
 
-		rt_mutex_inquire(&mutex_, &info);
-		rt_task_create(&task, "cycleWorker_xenomai", 0, 80, 0);
-		rt_task_start(&task, &cycleWorker_xenomai, &stop_flag_);
+		rt_mutex_create(&mutex_,"cyclerWorker_mutex");
+		rt_task_create(&task, "cycleWorker_xenomai", 0, THREAD_ETHERCAT_PRIORITY, 0);
+		rt_task_start(&task, &cycleWorker_xenomai, (void *)NULL);
 	}else{
 
 		cycle_thread_ = boost::thread(cycleWorker,
@@ -211,198 +208,199 @@ EtherCatManager::EtherCatManager(const std::string& ifname,bool realtime)
 
 EtherCatManager::~EtherCatManager()
 {
-  stop_flag_ = true;
+	stop_flag_ = true;
 
-  // Request init operational state for all slaves
-  ec_slave[0].state = EC_STATE_INIT;
+	// Request init operational state for all slaves
+	ec_slave[0].state = EC_STATE_INIT;
 
-  /* request init state for all slaves */
-  ec_writestate(0);
+	/* request init state for all slaves */
+	ec_writestate(0);
 
-  //stop SOEM, close socket
-  ec_close();
-  if(!real_time_){
-  	cycle_thread_.join();
-  }else{
-	  rt_mutex_delete(&mutex_);
-	  rt_task_delete(&task);
-  }
+	//stop SOEM, close socket
+	ec_close();
+	if(!real_time_)
+	{
+		cycle_thread_.join();
+	}else{
+		rt_mutex_delete(&mutex_);
+		rt_task_delete(&task);
+	}
 }
 
 #define IF_ELMO(_ec_slave) 1
 bool EtherCatManager::initSoem(const std::string& ifname) {
-  // Copy string contents because SOEM library doesn't
-  // practice const correctness
-  const static unsigned MAX_BUFF_SIZE = 1024;
-  char buffer[MAX_BUFF_SIZE];
-  size_t name_size = ifname_.size();
-  if (name_size > sizeof(buffer) - 1)
-  {
-    fprintf(stderr, "Ifname %s exceeds maximum size of %u bytes\n", ifname_.c_str(), MAX_BUFF_SIZE);
-    return false;
-  }
-  std::strncpy(buffer, ifname_.c_str(), MAX_BUFF_SIZE);
+	// Copy string contents because SOEM library doesn't
+	// practice const correctness
+	const static unsigned MAX_BUFF_SIZE = 1024;
+	char buffer[MAX_BUFF_SIZE];
+	size_t name_size = ifname_.size();
+	if (name_size > sizeof(buffer) - 1)
+	{
+		fprintf(stderr, "Ifname %s exceeds maximum size of %u bytes\n", ifname_.c_str(), MAX_BUFF_SIZE);
+		return false;
+	}
+	std::strncpy(buffer, ifname_.c_str(), MAX_BUFF_SIZE);
 
-  printf("Initializing etherCAT master\n");
+	printf("Initializing etherCAT master\n");
 
-  if (!ec_init(buffer))
-  {
-    fprintf(stderr, "Could not initialize ethercat driver\n");
-    return false;
-  }
+	if (!ec_init(buffer))
+	{
+		fprintf(stderr, "Could not initialize ethercat driver\n");
+		return false;
+	}
 
-  /* find and auto-config slaves */
-  if (ec_config_init(FALSE) <= 0)
-  {
-    fprintf(stderr, "No slaves found on %s\n", ifname_.c_str());
-    return false;
-  }
+	/* find and auto-config slaves */
+	if (ec_config_init(FALSE) <= 0)
+	{
+		fprintf(stderr, "No slaves found on %s\n", ifname_.c_str());
+		return false;
+	}
 
-  printf("SOEM found and configured %d slaves\n", ec_slavecount);
-  for( int cnt = 1 ; cnt <= ec_slavecount ; cnt++)
-  {
-    // ELMO Serial Man = 066Fh, ID = [5/D]****[0/4/8][0-F]*
-    printf(" Man: %8.8x ID: %8.8x Rev: %8.8x %s\n", (int)ec_slave[cnt].eep_man, (int)ec_slave[cnt].eep_id, (int)ec_slave[cnt].eep_rev, IF_ELMO(ec_slave[cnt])?" ELMO Drivers":"");
-    if(IF_ELMO(ec_slave[cnt])) {
-      num_clients_++;
-    }
-  }
-  printf("Found %d ELMO Drivers\n", num_clients_);
-
-
-  if (ec_statecheck(0, EC_STATE_PRE_OP, EC_TIMEOUTSTATE*4) != EC_STATE_PRE_OP)
-    {
-      fprintf(stderr, "Could not set EC_STATE_PRE_OP\n");
-      return false;
-    }
-
-  // use PDO mapping 4
-  for( int cnt = 1 ; cnt <= ec_slavecount ; cnt++)
-    {
-      if (! IF_ELMO(ec_slave[cnt])) continue;
-      int ret = 0, l;
-      uint8_t num_pdo ;
-      //uint8_t num_entries;
-      // set 0 change PDO mapping index
-      num_pdo = 0;
-      ret += ec_SDOwrite(cnt, 0x1c12, 0x00, FALSE, sizeof(num_pdo), &num_pdo, EC_TIMEOUTRXM);
-      // set to default PDO mapping 1
-
-       uint16_t idx_rxpdo = 0x1605;
-      ret += ec_SDOwrite(cnt, 0x1c12, 0x01, FALSE, sizeof(idx_rxpdo), &idx_rxpdo, EC_TIMEOUTRXM);
-      idx_rxpdo = 0x1616;
-      ret += ec_SDOwrite(cnt, 0x1c12, 0x02, FALSE, sizeof(idx_rxpdo), &idx_rxpdo, EC_TIMEOUTRXM);
-      idx_rxpdo = 0x1617;
-      ret += ec_SDOwrite(cnt, 0x1c12, 0x03, FALSE, sizeof(idx_rxpdo), &idx_rxpdo, EC_TIMEOUTRXM);
-      idx_rxpdo = 0x1618;
-      ret += ec_SDOwrite(cnt, 0x1c12, 0x04, FALSE, sizeof(idx_rxpdo), &idx_rxpdo, EC_TIMEOUTRXM);           
-      // set number of assigned PDOs
-      num_pdo = 4;
-      ret += ec_SDOwrite(cnt, 0x1c12, 0x00, FALSE, sizeof(num_pdo), &num_pdo, EC_TIMEOUTRXM);
-      printf("RxPDO mapping object index %d = %04x ret=%d\n", cnt, idx_rxpdo, ret);
+	printf("SOEM found and configured %d slaves\n", ec_slavecount);
+	for( int cnt = 1 ; cnt <= ec_slavecount ; cnt++)
+	{
+		// ELMO Serial Man = 066Fh, ID = [5/D]****[0/4/8][0-F]*
+		printf(" Man: %8.8x ID: %8.8x Rev: %8.8x %s\n", (int)ec_slave[cnt].eep_man, (int)ec_slave[cnt].eep_id, (int)ec_slave[cnt].eep_rev, IF_ELMO(ec_slave[cnt])?" ELMO Drivers":"");
+		if(IF_ELMO(ec_slave[cnt])) {
+			num_clients_++;
+		}
+	}
+	printf("Found %d ELMO Drivers\n", num_clients_);
 
 
-      // set 0 change PDO mapping index
-      num_pdo = 0;
-      ret += ec_SDOwrite(cnt, 0x1c13, 0x00, FALSE, sizeof(num_pdo), &num_pdo, EC_TIMEOUTRXM);
-      // set to default PDO mapping 1
-      uint16_t idx_txpdo = 0x1a04;
-      ret += ec_SDOwrite(cnt, 0x1c13, 0x01, FALSE, sizeof(idx_txpdo), &idx_txpdo, EC_TIMEOUTRXM);
-      idx_txpdo = 0x1a0f;
-      ret += ec_SDOwrite(cnt, 0x1c13, 0x02, FALSE, sizeof(idx_txpdo), &idx_txpdo, EC_TIMEOUTRXM);
-      idx_txpdo = 0x1a11;
-      ret += ec_SDOwrite(cnt, 0x1c13, 0x03, FALSE, sizeof(idx_txpdo), &idx_txpdo, EC_TIMEOUTRXM);
-      idx_txpdo = 0x1a1c;
-      ret += ec_SDOwrite(cnt, 0x1c13, 0x04, FALSE, sizeof(idx_txpdo), &idx_txpdo, EC_TIMEOUTRXM);
-      idx_txpdo = 0x1a1d;
-      ret += ec_SDOwrite(cnt, 0x1c13, 0x06, FALSE, sizeof(idx_txpdo), &idx_txpdo, EC_TIMEOUTRXM);
-      // idx_txpdo = 0x1a1f;
-      // ret += ec_SDOwrite(cnt, 0x1c13, 0x05, FALSE, sizeof(idx_txpdo), &idx_txpdo, EC_TIMEOUTRXM);
-     
-      // set number of assigned PDOs
-      num_pdo = 5;
-      ret += ec_SDOwrite(cnt, 0x1c13, 0x00, FALSE, sizeof(num_pdo), &num_pdo, EC_TIMEOUTRXM);
-      printf("TxPDO mapping object index %d = %04x ret=%d\n", cnt, idx_txpdo, ret);
-    }
+	if (ec_statecheck(0, EC_STATE_PRE_OP, EC_TIMEOUTSTATE*4) != EC_STATE_PRE_OP)
+	{
+		fprintf(stderr, "Could not set EC_STATE_PRE_OP\n");
+		return false;
+	}
 
-  // configure IOMap
-  int iomap_size = ec_config_map(iomap_);
-  printf("SOEM IOMap size: %d\n", iomap_size);
+	// use PDO mapping 4
+	for( int cnt = 1 ; cnt <= ec_slavecount ; cnt++)
+	{
+		if (! IF_ELMO(ec_slave[cnt])) continue;
+		int ret = 0, l;
+		uint8_t num_pdo ;
+		//uint8_t num_entries;
+		// set 0 change PDO mapping index
+		num_pdo = 0;
+		ret += ec_SDOwrite(cnt, 0x1c12, 0x00, FALSE, sizeof(num_pdo), &num_pdo, EC_TIMEOUTRXM);
+		// set to default PDO mapping 1
 
-  // locates dc slaves
-  if(ec_configdc()){
-    printf("configure DC success.\n");
-  }else{
-    printf("configure DC error. \n");
-  }
+		uint16_t idx_rxpdo = 0x1605;
+		ret += ec_SDOwrite(cnt, 0x1c12, 0x01, FALSE, sizeof(idx_rxpdo), &idx_rxpdo, EC_TIMEOUTRXM);
+		idx_rxpdo = 0x1616;
+		ret += ec_SDOwrite(cnt, 0x1c12, 0x02, FALSE, sizeof(idx_rxpdo), &idx_rxpdo, EC_TIMEOUTRXM);
+		idx_rxpdo = 0x1617;
+		ret += ec_SDOwrite(cnt, 0x1c12, 0x03, FALSE, sizeof(idx_rxpdo), &idx_rxpdo, EC_TIMEOUTRXM);
+		idx_rxpdo = 0x1618;
+		ret += ec_SDOwrite(cnt, 0x1c12, 0x04, FALSE, sizeof(idx_rxpdo), &idx_rxpdo, EC_TIMEOUTRXM);           
+		// set number of assigned PDOs
+		num_pdo = 4;
+		ret += ec_SDOwrite(cnt, 0x1c12, 0x00, FALSE, sizeof(num_pdo), &num_pdo, EC_TIMEOUTRXM);
+		printf("RxPDO mapping object index %d = %04x ret=%d\n", cnt, idx_rxpdo, ret);
 
-  // '0' here addresses all slaves
-  if (ec_statecheck(0, EC_STATE_SAFE_OP, EC_TIMEOUTSTATE*4) != EC_STATE_SAFE_OP)
-  {
-    fprintf(stderr, "Could not set EC_STATE_SAFE_OP\n");
-    return false;
-  }
 
-  /*
-      This section attempts to bring all slaves to operational status. It does so
-      by attempting to set the status of all slaves (ec_slave[0]) to operational,
-      then proceeding through 40 send/recieve cycles each waiting up to 50 ms for a
-      response about the status.
-  */
-  ec_slave[0].state = EC_STATE_OPERATIONAL;
-  ec_send_processdata();
-  ec_receive_processdata(4*EC_TIMEOUTRET);
-  ec_writestate(0);
+		// set 0 change PDO mapping index
+		num_pdo = 0;
+		ret += ec_SDOwrite(cnt, 0x1c13, 0x00, FALSE, sizeof(num_pdo), &num_pdo, EC_TIMEOUTRXM);
+		// set to default PDO mapping 1
+		uint16_t idx_txpdo = 0x1a04;
+		ret += ec_SDOwrite(cnt, 0x1c13, 0x01, FALSE, sizeof(idx_txpdo), &idx_txpdo, EC_TIMEOUTRXM);
+		idx_txpdo = 0x1a0f;
+		ret += ec_SDOwrite(cnt, 0x1c13, 0x02, FALSE, sizeof(idx_txpdo), &idx_txpdo, EC_TIMEOUTRXM);
+		idx_txpdo = 0x1a11;
+		ret += ec_SDOwrite(cnt, 0x1c13, 0x03, FALSE, sizeof(idx_txpdo), &idx_txpdo, EC_TIMEOUTRXM);
+		idx_txpdo = 0x1a1c;
+		ret += ec_SDOwrite(cnt, 0x1c13, 0x04, FALSE, sizeof(idx_txpdo), &idx_txpdo, EC_TIMEOUTRXM);
+		idx_txpdo = 0x1a1d;
+		ret += ec_SDOwrite(cnt, 0x1c13, 0x06, FALSE, sizeof(idx_txpdo), &idx_txpdo, EC_TIMEOUTRXM);
+		idx_txpdo = 0x1a1f;
+		ret += ec_SDOwrite(cnt, 0x1c13, 0x05, FALSE, sizeof(idx_txpdo), &idx_txpdo, EC_TIMEOUTRXM);
+		
+		// set number of assigned PDOs
+		num_pdo = 6;
+		ret += ec_SDOwrite(cnt, 0x1c13, 0x00, FALSE, sizeof(num_pdo), &num_pdo, EC_TIMEOUTRXM);
+		printf("TxPDO mapping object index %d = %04x ret=%d\n", cnt, idx_txpdo, ret);
+	}
 
-  int chk = 40;
-  do {
-    ec_send_processdata();
-    ec_receive_processdata(EC_TIMEOUTRET);
-    ec_statecheck(0, EC_STATE_OPERATIONAL, 50000); // 50 ms wait for state check
-  } while (chk-- && (ec_slave[0].state != EC_STATE_OPERATIONAL));
+	// configure IOMap
+	int iomap_size = ec_config_map(iomap_);
+	printf("SOEM IOMap size: %d\n", iomap_size);
 
-  if(ec_statecheck(0,EC_STATE_OPERATIONAL, EC_TIMEOUTSTATE) != EC_STATE_OPERATIONAL)
-  {
-    fprintf(stderr, "OPERATIONAL state not set, exiting\n");
-    return false;
-  }
+	// locates dc slaves
+	if(ec_configdc()){
+		printf("configure DC success.\n");
+	}else{
+		printf("configure DC error. \n");
+	}
 
-  ec_readstate();
-  for( int cnt = 1 ; cnt <= ec_slavecount ; cnt++)
-    {
-      if (! IF_ELMO(ec_slave[cnt])) continue;
-      printf("\nSlave:%d\n Name:%s\n Output size: %dbits\n Input size: %dbits\n State: %d\n Delay: %d[ns]\n Has DC: %d\n",
-	     cnt, ec_slave[cnt].name, ec_slave[cnt].Obits, ec_slave[cnt].Ibits,
-	     ec_slave[cnt].state, ec_slave[cnt].pdelay, ec_slave[cnt].hasdc);
-      if (ec_slave[cnt].hasdc) printf(" DCParentport:%d\n", ec_slave[cnt].parentport);
-      printf(" Activeports:%d.%d.%d.%d\n", (ec_slave[cnt].activeports & 0x01) > 0 ,
-	     (ec_slave[cnt].activeports & 0x02) > 0 ,
-	     (ec_slave[cnt].activeports & 0x04) > 0 ,
-	     (ec_slave[cnt].activeports & 0x08) > 0 );
-      printf(" Configured address: %4.4x\n", ec_slave[cnt].configadr);
-    }
+	// '0' here addresses all slaves
+	if (ec_statecheck(0, EC_STATE_SAFE_OP, EC_TIMEOUTSTATE*4) != EC_STATE_SAFE_OP)
+	{
+		fprintf(stderr, "Could not set EC_STATE_SAFE_OP\n");
+		return false;
+	}
 
-  for( int cnt = 1 ; cnt <= ec_slavecount ; cnt++)
-    {
-      if (! IF_ELMO(ec_slave[cnt])) continue;
-      int ret = 0, l;
-      uint16_t sync_mode;
-      uint32_t cycle_time;
-      uint32_t minimum_cycle_time;
-      uint32_t sync0_cycle_time;
-      l = sizeof(sync_mode);
-      ret += ec_SDOread(cnt, 0x1c32, 0x01, FALSE, &l, &sync_mode, EC_TIMEOUTRXM);
-      l = sizeof(cycle_time);
-      ret += ec_SDOread(cnt, 0x1c32, 0x02, FALSE, &l, &cycle_time, EC_TIMEOUTRXM);
-      l = sizeof(minimum_cycle_time);
-      ret += ec_SDOread(cnt, 0x1c32, 0x05, FALSE, &l, &minimum_cycle_time, EC_TIMEOUTRXM);
-      l = sizeof(sync0_cycle_time);
-      ret += ec_SDOread(cnt, 0x1c32, 0x0a, FALSE, &l, &sync0_cycle_time, EC_TIMEOUTRXM);
-      printf("PDO syncmode %02x, cycle time %d ns (min %d), sync0 cycle time %d ns, ret = %d\n", sync_mode, cycle_time, minimum_cycle_time, sync0_cycle_time, ret);
-    }
+	/*
+		This section attempts to bring all slaves to operational status. It does so
+		by attempting to set the status of all slaves (ec_slave[0]) to operational,
+		then proceeding through 40 send/recieve cycles each waiting up to 50 ms for a
+		response about the status.
+	*/
+	ec_slave[0].state = EC_STATE_OPERATIONAL;
+	ec_send_processdata();
+	ec_receive_processdata(4*EC_TIMEOUTRET);
+	ec_writestate(0);
 
-  printf("\nFinished configuration successfully\n");
-  return true;
+	int chk = 40;
+	do {
+		ec_send_processdata();
+		ec_receive_processdata(EC_TIMEOUTRET);
+		ec_statecheck(0, EC_STATE_OPERATIONAL, 50000); // 50 ms wait for state check
+	} while (chk-- && (ec_slave[0].state != EC_STATE_OPERATIONAL));
+
+	if(ec_statecheck(0,EC_STATE_OPERATIONAL, EC_TIMEOUTSTATE) != EC_STATE_OPERATIONAL)
+	{
+		fprintf(stderr, "OPERATIONAL state not set, exiting\n");
+		return false;
+	}
+
+	ec_readstate();
+	for( int cnt = 1 ; cnt <= ec_slavecount ; cnt++)
+	{
+		if (! IF_ELMO(ec_slave[cnt])) continue;
+		printf("\nSlave:%d\n Name:%s\n Output size: %dbits\n Input size: %dbits\n State: %d\n Delay: %d[ns]\n Has DC: %d\n",
+			cnt, ec_slave[cnt].name, ec_slave[cnt].Obits, ec_slave[cnt].Ibits,
+			ec_slave[cnt].state, ec_slave[cnt].pdelay, ec_slave[cnt].hasdc);
+		if (ec_slave[cnt].hasdc) printf(" DCParentport:%d\n", ec_slave[cnt].parentport);
+		printf(" Activeports:%d.%d.%d.%d\n", (ec_slave[cnt].activeports & 0x01) > 0 ,
+			(ec_slave[cnt].activeports & 0x02) > 0 ,
+			(ec_slave[cnt].activeports & 0x04) > 0 ,
+			(ec_slave[cnt].activeports & 0x08) > 0 );
+		printf(" Configured address: %4.4x\n", ec_slave[cnt].configadr);
+	}
+
+	for( int cnt = 1 ; cnt <= ec_slavecount ; cnt++)
+	{
+		if (! IF_ELMO(ec_slave[cnt])) continue;
+		int ret = 0, l;
+		uint16_t sync_mode;
+		uint32_t cycle_time;
+		uint32_t minimum_cycle_time;
+		uint32_t sync0_cycle_time;
+		l = sizeof(sync_mode);
+		ret += ec_SDOread(cnt, 0x1c32, 0x01, FALSE, &l, &sync_mode, EC_TIMEOUTRXM);
+		l = sizeof(cycle_time);
+		ret += ec_SDOread(cnt, 0x1c32, 0x02, FALSE, &l, &cycle_time, EC_TIMEOUTRXM);
+		l = sizeof(minimum_cycle_time);
+		ret += ec_SDOread(cnt, 0x1c32, 0x05, FALSE, &l, &minimum_cycle_time, EC_TIMEOUTRXM);
+		l = sizeof(sync0_cycle_time);
+		ret += ec_SDOread(cnt, 0x1c32, 0x0a, FALSE, &l, &sync0_cycle_time, EC_TIMEOUTRXM);
+		printf("PDO syncmode %02x, cycle time %d ns (min %d), sync0 cycle time %d ns, ret = %d\n", sync_mode, cycle_time, minimum_cycle_time, sync0_cycle_time, ret);
+	}
+
+	printf("\nFinished configuration successfully\n");
+	return true;
 }
 
 void EtherCatManager::write(int slave_no, uint8_t channel, uint8_t value)
@@ -475,12 +473,8 @@ uint8_t EtherCatManager::readOutput(int slave_no, uint8_t channel) const
 		rt_mutex_release(&mutex_);
 
 	}
-
-
   return ec_slave[slave_no].outputs[channel];
 }
-
-
 
 template <typename T>
 uint8_t EtherCatManager::writeSDO(int slave_no, uint16_t index, uint8_t subidx, T value) const
@@ -519,7 +513,7 @@ T EtherCatManager::readSDO(int slave_no, uint16_t index, uint8_t subidx) const
 
 int EtherCatManager::getNumClinets() const
 {
-  return num_clients_;
+	return num_clients_;
 }
 
 bool EtherCatManager::ifRealtime() const{

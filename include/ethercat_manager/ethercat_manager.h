@@ -13,11 +13,8 @@
 #include <alchemy/task.h>
 #include <alchemy/timer.h>
 #include <alchemy/mutex.h>
-// #include <alchemy/sem.h>
-// #include <boilerplate/trace.h>
-// #include <xenomai/init.h>
-// #include <trank/rtdk.h>
-// #include <osal.h>
+
+#include "common.h"
 
 namespace ethercat {
 

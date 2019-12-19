@@ -1,87 +1,134 @@
 #include "robot_control/robot_joint_client.h"
 
+namespace{
+
+}	// end of anonymous namespace
+
+
+
 namespace robot_control
 {
 
 /*****************************public********************************/
 
-RobotJointClient::RobotJointClient(ethercat::EtherCatManager& manager, int slave_no){
+RobotJointClient::RobotJointClient(ethercat::EtherCatManager& manager, int slave_no)
+{
 
+	memset(&client, 0x00, sizeof(elmo_control::ElmoClient));
     client = new elmo_control::ElmoClient( manager, slave_no);
 
     printf("Initialize EtherCATJoint (reset)\n");
     client->reset();
 
     printf("Initialize EtherCATJoint (InterpolationTimePeriod)\n");
-    client->setInterpolationTimePeriod(DEFAULT_INTERPOLATION_TIME_PERIOD);     
-
-    printf("Initialize EtherCATJoint (InterpolationBuffSetting)\n");
-	client->setInterpolationBuffSize();
+    client->setInterpolationTimePeriod(DEFAULT_INTERPOLATION_TIME_PERIOD / 1000);   /* (/1000): ms */
 
     // servo on
     printf("Initialize EtherCATJoint (servoOn)\n");
     client->servoOn();
 
-     // get current positoin
     printf("Initialize EtherCATJoint (readInputs)\n");
+	memset(&input, 0x00, sizeof(elmo_control::ElmoInput));
     input = client->readInputs();
-    // int32 current_position = input.position_actual_value;
+    output.target_position  = input.position_actual_value;
 
-    printf("set motor rate torque %d mN.m\n",RATE_TORQUE);
+    printf("Set motor rate torque %.2f mN.m\n",RATE_TORQUE);
     client->setMotorRateTorque(RATE_TORQUE);
 
-    memset(&output, 0x00, sizeof(elmo_control::ElmoOutput));
-    output.controlword   = 0x001f; // move to operation enabled + new-set-point (bit4) + change set immediately (bit5)
 
+
+	printf("Set motor Acc & Dcc...\n");
+	client->setAcc(DATA_TO_COUNT(ACC));
+  	client->setDcc(DATA_TO_COUNT(DCC));
+	  
+	printf("Set motor max torque %d mN.m\n",MAX_TORQUE);
+    memset(&output, 0x00, sizeof(elmo_control::ElmoOutput));
+    output.max_torque    = int16_t(MAX_TORQUE * 1000.0 / RATE_TORQUE);    
+	output.controlword   = 0x001f; // move to operation enabled + new-set-point (bit4) + change set immediately (bit5)
+	client->writeOutputs(output);
+    
     while ( ! (input.statusword & 0x1000) ) {// bit12 (set-point-acknowledge)
 		client->writeOutputs(output);
 		input = client->readInputs();
-		usleep(1000);
+		rt_timer_spin(DEFAULT_INTERPOLATION_TIME_PERIOD);  
     }
+	
     printf("Initialize EtherCATJoint (clear new set point)\n");
     output.controlword  &= ~0x0010; // clear new-set-point (bit4)
-
-    printf("set default op mode csp.\n");
-    output.operation_mode = CYCLIC_SYNCHRONOUS_POSITION_MODE; // (csp) cyclic synchronous position mode
-
     client->writeOutputs(output);
 
-    // waiting until operation_mode is csp
-    while(1){
-		input = client->readInputs();
-		if (client->getPDSOperation(input) != CYCLIC_SYNCHRONOUS_POSITION_MODE)
-		{
-			output.operation_mode = CYCLIC_SYNCHRONOUS_POSITION_MODE;
-			client->writeOutputs(output);
-		}else 
-			break;
-		usleep(1000);
-    }  
-
     printf("Initialize EtherCATJoint .. done\n");
+
 
 }
 
 RobotJointClient::~RobotJointClient(){
+
+	// rt_task_delete(&task_);
 	shutdown();
 	delete(client);
 }
-    
-void RobotJointClient::sentpos(float pos){
 
+void RobotJointClient::motor_halt(){
+
+	output.controlword |= (1 << 8);
+	client->writeOutputs(output);
+}
+
+void RobotJointClient::motor_halt_continue(){
+
+	output.controlword &= ~(1 << 8);
+	client->writeOutputs(output);
+}
+
+void RobotJointClient::motor_quick_stop(){
+	output.controlword |= (1 << 2);
+	client->writeOutputs(output);
+
+}
+
+void RobotJointClient::motor_quick_stop_continue(){
+	client->reset();
+	client->servoOn();
+}  
+
+void RobotJointClient::sentPos(float pos){
+    // output.controlword |= 0x0f;
 	output.target_position = DATA_TO_COUNT(pos);
 	client->writeOutputs(output);
 }
 
-void RobotJointClient::sentvel(float vel){
-
-	output.target_velocity = DATA_TO_COUNT(vel);
+void RobotJointClient::sentPosOffset(float pos){
+	output.position_offset = DATA_TO_COUNT(pos);
 	client->writeOutputs(output);
 }
 
-void RobotJointClient::sentorque(float torque){
 
+void RobotJointClient::sentVel(float vel){
+	if((input.operation_mode == CYCLIC_SYNCHRONOUS_VELOCITY_MODE) || (input.operation_mode == PROFILE_VELOCITY_MODE)){
+		output.target_velocity = DATA_TO_COUNT(vel);
+		client->writeOutputs(output);
+	}else if(input.operation_mode == PROFILE_POSITION_MODE){
+		client->setProfileVelocity(DATA_TO_COUNT(vel));
+	}
+}
+
+void RobotJointClient::sentVelOffset(float vel){
+	output.velocity_offset = DATA_TO_COUNT(vel);
+	client->writeOutputs(output);
+}
+
+
+void RobotJointClient::sentTorque(float torque){
+    output.controlword |= 0x0f;
 	output.target_torque = TORQUE_USER_TO_MOTOR(torque);
+
+	client->writeOutputs(output);
+}
+
+void RobotJointClient::sentTorqueOffset(float torque){
+
+	output.torque_offset = TORQUE_USER_TO_MOTOR(torque);
 	client->writeOutputs(output);
 }
 
@@ -89,18 +136,18 @@ int RobotJointClient::sentPosTraj(std::vector<float>points){
 
 	if(input.operation_mode == CYCLIC_SYNCHRONOUS_POSITION_MODE){
 
-		uint8_t elmo_buffsize;
+		int8_t buffsize_pos;
 		std::vector<float>::iterator point = points.begin();
 		
 		while (1)
 		{
-			elmo_buffsize = client->readTrajBuffSize();
+			buffsize_pos = client->readActualBuffPos();
 
-			if(elmo_buffsize <= ACTUAL_INTERPOLATION_BUFF_SIZE_LIMIT){
+			if(buffsize_pos <= ACTUAL_INTERPOLATION_BUFF_SIZE_LIMIT){
 
 				for(int i=0; i<= MAX_INTERPOLATION_BUFF_SIZE / 3; i++){
 					if(point != points.end()){
-						output.target_position = *point;
+						output.target_position = DATA_TO_COUNT(*point);
 						client->writeOutputs(output);
 						++ point;
 					}else{
@@ -118,29 +165,53 @@ int RobotJointClient::sentPosTraj(std::vector<float>points){
 	}
 }
 
-
 bool RobotJointClient::changeOPmode(uint8 opmode){
-  
-	printf("Changing opmode to %d !\n", opmode );
-	client->readInputs();
-	while(input.operation_mode != opmode){
 
+	RTIME now, previous;	/*ns */
+	previous = rt_timer_read();
+	int timeout = 10; 	/* 10s */
+
+	while(input.operation_mode != opmode ){
 		output.operation_mode = opmode;
 		client->writeOutputs(output);
-		client->readInputs();
-		printf("%d,%d\n",input.operation_mode,opmode);
-		usleep(1000);
+		rt_timer_spin(DEFAULT_INTERPOLATION_TIME_PERIOD);  
+		input = client->readInputs();
+
+		now = rt_timer_read();
+
+		if((now - previous) / 1e9 >= timeout ){	
+			break;
+		} 
 	}
-	printf(" Opmode is %d !\n", opmode );
+
+	if(input.operation_mode == opmode)
+	{
+		printf("Operational Mode is : ");
+		client->printPDSOperation(input);
+		return 0;
+	}else{
+		fprintf(stderr,"Set operation mode error...");
+		return -1;
+	}
 }
 
+PDS_OPERATION RobotJointClient::readOpmode(){
+	return(PDS_OPERATION(input.operation_mode));
+}
+
+
 float RobotJointClient::getMotorPos() const{
-	return (COUNT_TO_DATA(input.position_actual_value));
+	return float(COUNT_TO_DATA(input.position_actual_value));
 }
 
 float RobotJointClient::getMotorVel() const{
-	return (COUNT_TO_DATA(input.velocity_actual_value));
+	return float(COUNT_TO_DATA(input.velocity_actual_value));
 }
+
+    uint16 RobotJointClient::getStatusWord() const{
+		return(input.statusword);
+	}
+
 
 float RobotJointClient::getMotorTorque() const{
 	return (TORQUE_MOTOR_TO_USER(input.torque_actual_value));
@@ -160,6 +231,11 @@ float RobotJointClient::getJointTorque() const{
 	return TORQUE_ALALOG_TRANSITION(input.analog_input);
 }
 
+void RobotJointClient::get_feedback(void){
+	input = client->readInputs();
+}
+
+
 void RobotJointClient::shutdown(){
 
 	client->printPDSStatus(input);
@@ -167,6 +243,20 @@ void RobotJointClient::shutdown(){
 	client->reset();
 	client->servoOff();
 }
-/********************************************************************/
 
+
+int8_t RobotJointClient::getBuffSize(){
+	return ( client->readTrajBuffSize());
+}
+
+int8_t RobotJointClient::getBuffPos(){
+	return ( client->readActualBuffPos());
+}
+
+int16_t RobotJointClient::getChipTemp(){
+	return (client->readChipTemp());
+} 
+
+
+/********************************************************************/
 }// end of robot_control namespace

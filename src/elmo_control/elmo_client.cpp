@@ -33,7 +33,7 @@ void ElmoClient::writeOutputs(const ElmoOutput& output)
 	map[12] = (output.controlword) & 0x00ff;
 	map[13] = (output.controlword >> 8) & 0x00ff;
 
-	map[14] = output.operation_mode;
+	map[14] = (output.operation_mode) & 0xff;
 
 	map[15] = (output.position_offset) & 0x00ff;
 	map[16] = (output.position_offset >>  8) & 0x00ff;
@@ -88,13 +88,13 @@ ElmoOutput ElmoClient::readOutputs() const
 	}
 	output.target_position	= *(uint32 *)(map+0);
 	output.target_velocity  = *(uint32 *)(map+4);
-	output.target_torque	= *(uint32 *)(map+8);
-	output.max_torque     	= *(uint32 *)(map+10);
+	output.target_torque	= *(uint16 *)(map+8);
+	output.max_torque     	= *(uint16 *)(map+10);
 	output.controlword  	= *(uint16 *)(map+12);
 	output.operation_mode	= *(uint8  *)(map+14);
 	output.position_offset	= *(uint16 *)(map+15);
 	output.velocity_offset  = *(uint16 *)(map+19);
-	output.torque_offset	= *(uint32 *)(map+23);
+	output.torque_offset	= *(uint16 *)(map+23);
 
 	return output;
 }
@@ -104,7 +104,7 @@ void ElmoClient::reset()
 	ElmoOutput output;
 	memset(&output, 0x00, sizeof(ElmoOutput));
 	output.controlword = 0x0080; // fault reset
-	// output.operation_mode = 0x01; // position profile mode
+	output.operation_mode = 0x08; // csp mode
 	writeOutputs(output);
 	printf("Fault was cleared\n");
 }
@@ -134,9 +134,9 @@ void ElmoClient::servoOn()
 				return;
 		}
 		writeOutputs(output);
-		usleep(SLEEP_TIME_MS*1000);
+		rt_timer_spin(DEFAULT_INTERPOLATION_TIME_PERIOD);
 		input = readInputs();
-		if (loop++ % 100 == 1) printPDSStatus(input);
+		if (loop++ % 1000 == 1) printPDSStatus(input);
 	}
 }
 
@@ -173,6 +173,7 @@ void ElmoClient::servoOff()
 PDS_STATUS ElmoClient::getPDSStatus(const ElmoInput input) const
 {
 	uint16 statusword = input.statusword;
+	// printf("statusword: %4x \n",statusword );
 	if (((statusword) & 0x004f) == 0x0000) { // x0xx 0000
 		return NOT_READY;
 	}else if (((statusword) & 0x004f) == 0x0040) { // x1xx 0000
@@ -214,7 +215,7 @@ PDS_OPERATION ElmoClient::getPDSOperation(const ElmoInput input) const
 
 PDS_STATUS ElmoClient::getPDSControl(const ElmoInput input) const
 {
-	uint16 statusword = input.statusword;
+	// uint16 statusword = input.statusword;
 }
 
 
@@ -374,24 +375,95 @@ void ElmoClient::printPDSControl(const ElmoInput input) const
 	
 }
 
-void ElmoClient::setProfileVelocity(uint32_t val)
+int ElmoClient::setProfileVelocity(uint32_t val)
 {
 	// 6091h, unit: pulse, range: 0 - 4294967295, U32
 	uint32_t u32val = (uint32_t)val;
 	manager_.writeSDO<uint32_t>(slave_no_, 0x6081, 0x00, u32val);
+	int ret = 0 ;
+	uint32_t temp;
+	 int timeout = 10;
+	RTIME now, previous;	/*ns */
+	previous = rt_timer_read(); 
+	while(temp != u32val){
+		printf("setProfileVelocity...\n");
+		manager_.writeSDO<uint32_t>(slave_no_, 0x6081, 0x00, u32val);
+		temp = manager_.readSDO<uint32_t>(slave_no_,0x6081,0x00);
+		rt_timer_spin(DEFAULT_INTERPOLATION_TIME_PERIOD);  
+		if((now - previous) / 1e9 >= timeout ){	
+			ret = -1;
+			break;
+		} 
+	}
+	return ret;
 }
 
-void ElmoClient::setMaxVelocity(uint32_t val)
+int ElmoClient::setMaxVelocity(uint32_t max_velocity)
 {
-	uint32_t u32val = (uint32_t)val;
+	uint32_t u32val = (uint32_t)max_velocity;
 	manager_.writeSDO<uint32_t>(slave_no_, 0x6080, 0x00, u32val);
+	int ret = 0 ;
+	uint32_t temp;
+	 int timeout = 10;
+	RTIME now, previous;	/*ns */
+	previous = rt_timer_read(); 
+	while(temp != u32val){
+		printf("setMaxVelocity...\n");
+		manager_.writeSDO<uint32_t>(slave_no_, 0x6080, 0x00, u32val);
+		temp = manager_.readSDO<uint32_t>(slave_no_,0x6080,0x00);
+		rt_timer_spin(DEFAULT_INTERPOLATION_TIME_PERIOD);  
+		if((now - previous) / 1e9 >= timeout ){	
+			ret = -1;
+			break;
+		} 
+	}
+	return ret;
 }
 
-void ElmoClient::setMotorRateTorque(uint32_t rate_torque)
+int ElmoClient::setMotorRateTorque(uint32_t rate_torque)
 {
+
     // 6076h, unit: pulse, range: 0 - 4294967295, U32
     uint32_t u32val = (uint32_t)rate_torque;
     manager_.writeSDO<uint32_t>(slave_no_, 0x6076, 0x00, u32val);
+	int ret = 0 ;
+	uint32_t temp;
+	int timeout = 10;
+	RTIME now, previous;	/*ns */
+	previous = rt_timer_read(); 
+	while(temp != u32val){
+		printf("setMotorRateTorque...\n");
+		manager_.writeSDO<uint32_t>(slave_no_, 0x6076, 0x00, u32val);
+		temp = manager_.readSDO<uint32_t>(slave_no_,0x6076,0x00);
+		rt_timer_spin(DEFAULT_INTERPOLATION_TIME_PERIOD);  
+		if((now - previous) / 1e9 >= timeout ){	
+			ret = -1;
+			break;
+		} 
+	}
+	return ret;
+}
+
+int ElmoClient::setMaxTorque(uint16_t max_torque){
+
+    uint16_t u16val = (uint16_t)max_torque;
+    manager_.writeSDO<uint16_t>(slave_no_, 0x6072, 0x00, u16val);
+	int ret = 0 ;
+	uint16_t temp;
+	 int timeout = 10;
+	RTIME now, previous;	/*ns */
+	previous = rt_timer_read(); 
+	while(temp != u16val){
+		printf("setMaxTorque...\n");
+		manager_.writeSDO<uint16_t>(slave_no_, 0x6072, 0x00, u16val);
+		temp = manager_.readSDO<uint16_t>(slave_no_,0x6072,0x00);
+		rt_timer_spin(DEFAULT_INTERPOLATION_TIME_PERIOD);  
+		if((now - previous) / 1e9 >= timeout ){	
+			ret = -1;
+			break;
+		} 
+	}
+	return ret;
 }
 
 uint32_t ElmoClient::readMotorRateTorque()const
@@ -416,7 +488,7 @@ void ElmoClient::setInterpolationTimePeriod(int us)
 		case 2000: u32val = 2000000; 	u8val = 2; break;
 		case 4000: u32val = 4000000; 	u8val = 4; break;
 		default:
-		fprintf(stderr, "setInterpolatinTimePeriod(%d) must be ether of 1000, 2000, 4000\n", us);
+			fprintf(stderr, "setInterpolatinTimePeriod(%d) must be ether of 1000, 2000, 4000\n", us);
 		return;
 	}
 	interpolationTimePeriod = u8val;
@@ -427,8 +499,8 @@ void ElmoClient::setInterpolationTimePeriod(int us)
 
 	u32val = manager_.readSDO<uint32_t>(slave_no_, 0x1c32, 0x02);
 	u8val = manager_.readSDO<uint8_t>(slave_no_, 0x60c2, 0x01);
-	printf("1c32h: cycle time %d\n", u32val);
-	printf("60c2h: interpolation time period value %d\n", u8val);
+	printf("1c32h: cycle time %04x\n", u32val);
+	printf("60c2h: interpolation time period value %02d\n", u8val);
 
 }
 
@@ -437,23 +509,67 @@ int ElmoClient::getInterpolationTimePeriod(){
 }
 
 
-  uint8 ElmoClient::readTrajBuffSize() const
-  {
-	  uint8 ret;
-	  ret = manager_.readSDO<uint8_t>(slave_no_, 0x60c4, 0x2);
-	  return ret;
+uint32_t ElmoClient::readTrajBuffSize() const
+{
+	uint32_t ret;
+	ret = manager_.readSDO<uint32_t>(slave_no_, 0x60c4, 0x2);
+	return ret;
+}
+
+uint16_t ElmoClient::readActualBuffPos() const
+{
+	uint16_t ret;
+	ret = manager_.readSDO<uint16_t>(slave_no_, 0x60c4, 0x4);
+	return ret;
+}
+
+  int ElmoClient::setAcc(uint32_t u32val){
+
+    manager_.writeSDO<uint32_t>(slave_no_, 0x6083, 0x00, u32val);
+	int ret = 0 ;
+	uint32_t temp;
+	int timeout = 10;
+	RTIME now, previous;	/*ns */
+	previous = rt_timer_read(); 
+	while(temp != u32val){
+		printf("setAcc...\n");
+		manager_.writeSDO<uint32_t>(slave_no_, 0x6083, 0x00, u32val);
+		temp = manager_.readSDO<uint32_t>(slave_no_,0x6083,0x00);
+		rt_timer_spin(DEFAULT_INTERPOLATION_TIME_PERIOD);  
+		if((now - previous) / 1e9 >= timeout ){	
+			ret = -1;
+			break;
+		} 
+	}
+	return ret;
+
   }
 
-  int ElmoClient::setInterpolationBuffSize(){
+  int ElmoClient::setDcc(uint32_t u32val){
 
-	uint8_t max_interpolation_buff_size = MAX_INTERPOLATION_BUFF_SIZE;
-	int ret;
-	ret = manager_.writeSDO<uint8_t>(slave_no_, 0x60c4, 0x01, max_interpolation_buff_size);
-	while(ret != max_interpolation_buff_size){
-		ret = manager_.readSDO<uint8_t>(slave_no_, 0x60c4, 0x1);
-		printf("Set the Interpolation max buff size..\n");
-		}
-	return 0;
+	manager_.writeSDO<uint32_t>(slave_no_, 0x6084, 0x00, u32val);
+	int ret = 0 ;
+	uint32_t temp;
+	int timeout = 10;
+	RTIME now, previous;	/*ns */
+	previous = rt_timer_read(); 
+	while(temp != u32val){
+		printf("setAcc...\n");
+		manager_.writeSDO<uint32_t>(slave_no_, 0x6084, 0x00, u32val);
+		temp = manager_.readSDO<uint32_t>(slave_no_,0x6084,0x00);
+		rt_timer_spin(DEFAULT_INTERPOLATION_TIME_PERIOD);  
+		if((now - previous) / 1e9 >= timeout ){	
+			ret = -1;
+			break;
+		} 
+	}
+	return ret;
+  }
+
+  int16_t ElmoClient::readChipTemp(){
+	int16_t ret;
+	ret = manager_.readSDO<uint16_t>(slave_no_, 0x22a3, 0x1);
+	return ret;
   }
 
 

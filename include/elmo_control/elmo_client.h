@@ -43,7 +43,7 @@ typedef struct {
   uint8  operation_mode;		// 6060h : Mode of operation
   uint32 position_offset;   //60b0
   uint32 velocity_offset;   //60B1
-  uint32 torque_offset;     //60b2
+  uint16 torque_offset;     //60b2
 
 } ElmoOutput;
 
@@ -52,7 +52,7 @@ class ElmoClient
 {
 public:
   /**
-   * \brief Constructs a control interface to a MINUS AC Servo on
+   * \brief Constructs a control interface to a ELMO  Servo on
    *        the given ethercat network and the given slave_no.
    *
    * @param[in] manager The interface to an EtherCAT network that the gripper
@@ -100,26 +100,28 @@ public:
    */
   void servoOff();
 
-  // /**
-  //  * \brief initialize the distribute timer.
-  //  * \return void
-  //  */
-  // void initDC();
 
-  // /**
-  //  * \brief update the distribute timer in loop.
-  //  * \return void
-  //  */
-  // void updateDC();
+  int setAcc(uint32_t u32val);
+  
+  int setDcc(uint32_t u32val);
 
   /*
    * \brief set Profile velocity 0 - 4294967295 (6081h / 00h)
-   * \return void
+   * \return int( 0 : success /-1:fail)
    */
-  void setProfileVelocity(uint32_t val);
+  int setProfileVelocity(uint32_t val);
 
+ /*
+   * \brief set max velocity 0 - 4294967295 (0x6080 / 00h)
+   * \return int( 0 : success /-1:fail)
+   */
+  int setMaxVelocity(uint32_t max_velocity);
 
-  void setMaxVelocity(uint32_t val);
+ /*
+   * \brief set max torque 0 - 65535 (0x6072 / 00h)
+   * \return int( 0 : success /-1:fail)
+   */
+  int setMaxTorque(uint16_t max_torque);
 
   /*
    * \brief get the absolute position encoder Pos by SDO 
@@ -136,9 +138,9 @@ public:
 
   /*
    * \brief set motor rate torque  (6076h / 00h)
-   * \return void
+   * \return int( 0 : success /-1:fail)
    */
-  void setMotorRateTorque(uint32_t rate_torque);
+  int setMotorRateTorque(uint32_t rate_torque);
 
   uint32_t readMotorRateTorque()const;
 
@@ -189,13 +191,16 @@ public:
    * \brief read the interpolation buff actual size
    * \return uint8
    */
-  uint8 readTrajBuffSize() const;
+  uint32_t readTrajBuffSize() const;
+
+  uint16_t readActualBuffPos() const;
 
   /**
-   * \brief set the maxmuim buff size of interpolation.
-   * \return int
+   * brief : get the chip temperature.
+   * return : (int16_t) unit:celsius 
+   *
    */
-  int setInterpolationBuffSize();
+  int16_t readChipTemp();
 
 private:
 
@@ -205,8 +210,6 @@ private:
   const int slave_no_;
 
   int interpolationTimePeriod;
-
-
 
 };
 
