@@ -1,14 +1,14 @@
 #-------------------------------------------------
 #
-# Project created by QtCreator 2019-12-17T20:07:03
+# Project created by QtCreator 2019-12-20T15:01:10
 #
 #-------------------------------------------------
 
-QT       += core gui
+QT       += core  gui  charts
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
-TARGET = MotorControl
+TARGET = motorcontrol
 TEMPLATE = app
 
 # The following define makes your compiler emit warnings if you use
@@ -26,15 +26,20 @@ CONFIG += c++11
 
 SOURCES += \
         main.cpp \
-        motorcontrol.cpp
+        motorcontrol.cpp \ 
+        stateplot.cpp   \
+        ./../../src/robot_control/robot_joint_client.cpp        \
+        motorThread.cpp
 
 HEADERS += \
-        motorcontrol.h
+        motorcontrol.h \ 
+        stateplot.h     \
+        ./../../include/robot_control/robot_joint_client.h  \
+        motorThread.h
 
 FORMS += \
-        motorcontrol.ui
-
-
+        motorcontrol.ui \
+        stateplot.ui
 
 # Default rules for deployment.
 qnx: target.path = /tmp/$${TARGET}/bin
@@ -42,4 +47,4 @@ else: unix:!android: target.path = /opt/$${TARGET}/bin
 !isEmpty(target.path): INSTALLS += target
 
 RESOURCES += \
-    resources.qrc
+    resource.qrc

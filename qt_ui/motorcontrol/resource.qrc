@@ -3,5 +3,9 @@
         <file>../icon/brain.ico</file>
         <file>../icon/robot.ico</file>
         <file>../icon/think.ico</file>
+        <file>../icon/file.ico</file>
+        <file>../icon/help.ico</file>
+        <file>../icon/tools.ico</file>
+        <file>../icon/stats_lines.ico</file>
     </qresource>
 </RCC>

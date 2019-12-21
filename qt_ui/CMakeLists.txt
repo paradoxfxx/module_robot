@@ -1,3 +1,3 @@
-add_subdirectory(MotorControl)
+add_subdirectory(motorcontrol)
 
 
