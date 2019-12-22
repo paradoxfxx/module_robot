@@ -1,6 +1,7 @@
 #include "motorcontrol.h"
 #include "ui_motorcontrol.h"
 #include <QMessageBox>
+#include <QMetaType>
 
 MotorControl::MotorControl(QWidget *parent) :
     QMainWindow(parent),
@@ -15,6 +16,8 @@ MotorControl::MotorControl(QWidget *parent) :
 
     thread_ = new MotorThread();
 
+    qRegisterMetaType<std::vector<float>>("std::vector<float>");
+
     connect(this,SIGNAL(motorStart()),thread_,SLOT(motorStart()));
     connect(this,SIGNAL(motorStop()),thread_,SLOT(motorStop()));
     connect(this,SIGNAL(motorHalt()),thread_,SLOT(motorHalt()));
@@ -24,18 +27,16 @@ MotorControl::MotorControl(QWidget *parent) :
     connect(this,SIGNAL(sentMotorPos(float)),thread_,SLOT(sentMotorPos(float)));
     connect(this,SIGNAL(sentMotorVel(float)),thread_,SLOT(sentMotorVel(float)));
     connect(this,SIGNAL(sentMotorTorque(float)),thread_,SLOT(sentMotorTorque(float)));
-
     connect(thread_,SIGNAL(sentMotorOpenError(bool)),this,SLOT(motor_start_error(bool)));
-    connect(thread_,SIGNAL(uploadFeedback(std::list<float>)), \
-            this,SLOT(get_feedback_data(std::list<float>)));
-
+    connect(thread_->sent_feedback_,SIGNAL(uploadFeedback(std::vector<float>)), \
+            this,SLOT(get_feedback_data(std::vector<float>)));
 }
 
 MotorControl::~MotorControl()
-{
+{   
+    // printf("delete motorcontrol...\n");
+    delete thread_;
     delete ui;
-    delete ui_state_plot;
-
 }
 
 void MotorControl::on_pushButton_clicked()
@@ -105,7 +106,6 @@ void MotorControl::on_pushButton_5_clicked()
 void MotorControl::on_actionStatePlot_triggered()
 {
     ui_state_plot = new StatePlot(NULL);
-    ui_state_plot->setAttribute(Qt::WA_DeleteOnClose); //关闭时自动删除
     ui_state_plot->show();
 }
 
@@ -124,7 +124,7 @@ void MotorControl::on_actionHelp_triggered()
 }
 
 void MotorControl::get_feedback_data(std::vector<float> vector){
-
+    printf("3333\n");
     ui->lineEdit->setText(QString::number(vector[0]));    //motor pos
     ui->lineEdit_2->setText(QString::number(vector[1]));  //motor vel
     ui->lineEdit_3->setText(QString::number(vector[2]));  //motor torque

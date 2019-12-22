@@ -6,7 +6,6 @@
 #include "stateplot.h"
 #include "motorThread.h"
 
-
 namespace Ui {
 class MotorControl;
 }

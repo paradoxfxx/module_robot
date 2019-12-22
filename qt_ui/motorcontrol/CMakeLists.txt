@@ -6,17 +6,23 @@ set(CMAKE_CXX_STANDARD 11)
 
 #添加所有的源文件
 SET(UI_SOURCES 
-    motorcontrol.cpp
+
+	sentFeedback.cpp
 	stateplot.cpp
 	motorThread.cpp
+    motorcontrol.cpp
+
 	main.cpp 
 )
 
 #添加所有的头文件
 SET(UI_HEADERS 
-    motorcontrol.h
+
+	sentFeedback.h
 	stateplot.h
 	motorThread.h
+    motorcontrol.h
+
 )
 
 #添加所有的.ui文件

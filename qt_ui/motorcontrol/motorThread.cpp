@@ -1,6 +1,36 @@
 #include "motorThread.h"
 #include<QMessageBox>
 
+bool MotorThread::is_stop_ ;
+bool MotorThread::is_halt_;
+bool MotorThread::is_quickstop_;
+
+float MotorThread::motor_pos_;
+float MotorThread::motor_vel_;
+float MotorThread::motor_torque_; 
+
+float MotorThread::joint_pos_;
+float MotorThread::joint_vel_;
+float MotorThread::joint_torque_; 
+float MotorThread::chip_temp_;  
+
+int8_t MotorThread::opmode_; 
+                           
+std::vector<float> MotorThread::vector_;
+
+bool MotorThread::have_new_command_; 
+float MotorThread::pos_command_;
+float MotorThread::vel_command_;
+float MotorThread::torque_command_;
+
+robot_control::RobotJointClient* MotorThread::motor_1;
+ethercat::EtherCatManager * MotorThread::manager_;
+
+MotorThread *MotorThread::sent_feedback_ = new MotorThread();
+
+RT_MUTEX MotorThread::mutex_;
+const RTIME MotorThread::mutex_timeout = 1000000; /*1 ms */
+
 MotorThread::MotorThread(){
 
     /*default value */
@@ -21,13 +51,90 @@ MotorThread::MotorThread(){
     have_new_command_ = false;
 
     vector_.clear();
+ 
 }
 
 void MotorThread::run(){
 
-    while(! is_stop_){
+    // while(! is_stop_){
 
-        mutex_.lock();
+    //     mutex_.lock();
+    //         if(have_new_command_){
+    //             if(opmode_ == PROFILE_POSITION_MODE){
+    //                 motor_1->sentPos(pos_command_);
+    //             }else if(opmode_ == PROFILE_VELOCITY_MODE){
+    //                 motor_1->sentVel(vel_command_);
+    //             }else if(opmode_ == TORQUE_PROFILE_MODE){
+    //                 motor_1->sentTorque(torque_command_);
+    //             }
+    //             have_new_command_ = false;
+    //         }
+
+    //         motor_1->get_feedback();
+    //         motor_pos_ = motor_1->getMotorPos();
+    //         motor_vel_ = motor_1->getMotorVel();
+    //         motor_torque_ = motor_1->getMotorTorque();
+
+    //         joint_pos_ = motor_1->getJointPos();
+    //         joint_vel_ = motor_1->getJointVel();
+    //         joint_torque_ = motor_1->getJointTorque();
+    //         chip_temp_ = motor_1->getChipTemp();
+    //     mutex_.unlock();
+
+    //     vector_.clear();
+    //     vector_.push_back(motor_pos_);
+    //     vector_.push_back(motor_vel_);
+    //     vector_.push_back(motor_torque_);
+    //     vector_.push_back(joint_pos_);
+    //     vector_.push_back(joint_vel_);
+    //     vector_.push_back(joint_torque_);
+    //     vector_.push_back(chip_temp_);
+    //     emit uploadFeedback(vector_);
+
+    //     this->usleep(800); /*800 us */
+    // }
+
+    rt_task_create(&task_command_,"task_command_",0,THREAD_MOTOR_FEEDBACK_PRIORITY,0);
+    rt_task_create(&task_feedback_,"task_feedback_",0,THREAD_MOTOR_COMMAND_PRIORITY,0);
+    rt_mutex_create(&mutex_,"xenomai_thread_command_and_feedback");
+
+    rt_task_start(&task_command_, &taskSentCommand, NULL);
+    rt_task_start(&task_feedback_, &taskFeedback, NULL);
+    
+    rt_task_join(&task_command_);
+    rt_task_join(&task_feedback_);
+
+    rt_task_delete(&task_command_);
+    rt_task_delete(&task_feedback_);
+    rt_mutex_delete(&mutex_);
+
+    delete manager_;
+    delete motor_1;
+}
+
+
+MotorThread::~MotorThread(){
+    // printf("delete thread...\n");    
+}
+
+void MotorThread::taskSentCommand(void *){
+
+    rt_task_set_periodic(NULL, TM_NOW, 1000000);    /*1ms */
+
+    bool if_new_halt_command_ = false;
+
+    int8_t if_new_opmode_command_ = 0x0;
+
+    while(1){
+
+		rt_task_wait_period(NULL);
+
+        rt_mutex_acquire(&mutex_,mutex_timeout);
+            if(if_new_opmode_command_ != opmode_){
+                motor_1->changeOPmode(opmode_);
+                if_new_opmode_command_ = opmode_;
+            }
+
             if(have_new_command_){
                 if(opmode_ == PROFILE_POSITION_MODE){
                     motor_1->sentPos(pos_command_);
@@ -39,6 +146,39 @@ void MotorThread::run(){
                 have_new_command_ = false;
             }
 
+            if(is_quickstop_){
+                motor_1->motor_quick_stop();
+                motor_1->shutdown();
+                break;
+            }
+
+            if(is_stop_){
+                motor_1->shutdown();
+                break;
+            }
+
+            if(if_new_halt_command_ != is_halt_){
+
+                if(is_halt_){
+                    motor_1->motor_halt();
+                }else{
+                    motor_1->motor_halt_continue();
+                }
+                if_new_halt_command_ = is_halt_;
+            }
+        rt_mutex_release(&mutex_);
+
+    }
+}
+
+void MotorThread::taskFeedback(void *){
+    rt_task_set_periodic(NULL, TM_NOW, 1000000);    /*1ms */
+
+    while(!is_stop_){
+
+    	rt_task_wait_period(NULL);
+
+        rt_mutex_acquire(&mutex_,mutex_timeout);
             motor_1->get_feedback();
             motor_pos_ = motor_1->getMotorPos();
             motor_vel_ = motor_1->getMotorVel();
@@ -48,7 +188,7 @@ void MotorThread::run(){
             joint_vel_ = motor_1->getJointVel();
             joint_torque_ = motor_1->getJointTorque();
             chip_temp_ = motor_1->getChipTemp();
-        mutex_.unlock();
+        rt_mutex_release(&mutex_);
 
         vector_.clear();
         vector_.push_back(motor_pos_);
@@ -58,15 +198,9 @@ void MotorThread::run(){
         vector_.push_back(joint_vel_);
         vector_.push_back(joint_torque_);
         vector_.push_back(chip_temp_);
-        emit uploadFeedback(vector_);
+        sentFeedback(vector_, *sent_feedback_);
 
-        this->usleep(800); /*800 us */
- 
-    }
-}
-
-MotorThread::~MotorThread(){
-    
+    }   
 }
 
 void MotorThread::motorStart(){
@@ -74,96 +208,90 @@ void MotorThread::motorStart(){
     try{
         manager_ = new ethercat::EtherCatManager(NETWORK_CARD_NAME , 1);
         motor_1 = new robot_control::RobotJointClient(*manager_, true);
+
     }catch(std::exception &e){
         emit sentMotorOpenError(true);
-        QMessageBox::warning(NULL, "warning", e.what());                         
+        QMessageBox::warning(NULL, "warning", e.what());
+        /*test code */
+        // std::vector<float> test = {1,1,1,1,1,1,1,1}; 
+        // sentFeedback(test, *sent_feedback_);
+        /*test end */   
         return;
     }
     emit sentMotorOpenError(false);
     is_stop_ = false;
+    
     this->start();
 
  }
 
 void MotorThread::motorStop(){
 
-    mutex_.lock();
+
     is_stop_ = true;
-    motor_1->shutdown();
-    mutex_.unlock();
-    delete manager_;
-    delete motor_1;
-    this->quit();
 
 }
 
 void MotorThread::motorHalt(){
-    mutex_.lock();
+  
     is_halt_ = true;
-    motor_1->motor_halt();
-    mutex_.unlock();
-    this->wait();   
 
 }
 
 void MotorThread::motorHaltContinue(){
-    this->start();
-    mutex_.lock();
+
     is_halt_ = false;
-    motor_1->motor_halt_continue();
-    mutex_.unlock();
 
 }
 
 void MotorThread::motorQuickStop(){
 
-    mutex_.lock();
     is_quickstop_ = true;
-    motor_1->motor_quick_stop();
-    motor_1->shutdown();
-    mutex_.unlock();
-    delete manager_;
-    delete motor_1;
-    this->quit();
+
 
 }
 
 void MotorThread::motorQuickStopContinue(){
 
-    mutex_.lock();
     is_quickstop_ = false;
-    motor_1->motor_quick_stop_continue();
-    mutex_.unlock();
 
 }
 
 void MotorThread::changeOpmode(uint8_t mode){
-    mutex_.lock();
-    motor_1->changeOPmode(mode);
-    mutex_.unlock();
+    opmode_ = mode;
 
 }
 
 void MotorThread::sentMotorPos(float position){
-    mutex_.lock();
     have_new_command_ = true;
     pos_command_ = position;
-    mutex_.unlock();
 
 }
 
 void MotorThread::sentMotorVel(float velocity){
-    mutex_.lock();
     have_new_command_ = true;
     vel_command_ = velocity;
-    mutex_.unlock();
 
 }
 
 void MotorThread::sentMotorTorque(float torque){
-    mutex_.lock();
     have_new_command_ = true;
     torque_command_ = torque;
-    mutex_.unlock();
 
 }
+
+
+// void MotorThread::sentFeedback(std::vector<float> vector){
+//     tansmit_feedback->dealSentFeedback(vector);
+// }
+
+// void MotorThread::dealSentFeedback(std::vector<float> vector){
+//     emit this->uploadFeedback(vector);
+// }
+
+void MotorThread::sentFeedback(std::vector<float> vector, MotorThread &thread){
+    thread.uploadFeedback(vector);
+} 
+
+
+
