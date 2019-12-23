@@ -959,10 +959,10 @@
    <widget class="QMenu" name="menuFile">
     <property name="geometry">
      <rect>
-      <x>401</x>
+      <x>400</x>
       <y>109</y>
       <width>159</width>
-      <height>75</height>
+      <height>80</height>
      </rect>
     </property>
     <property name="font">
@@ -994,10 +994,20 @@
     <addaction name="actionHelp"/>
    </widget>
    <widget class="QMenu" name="menuTool">
+    <property name="font">
+     <font>
+      <pointsize>14</pointsize>
+     </font>
+    </property>
     <property name="title">
      <string>Tool</string>
     </property>
     <widget class="QMenu" name="menuStatePlot">
+     <property name="font">
+      <font>
+       <pointsize>14</pointsize>
+      </font>
+     </property>
      <property name="title">
       <string>StatePlot</string>
      </property>
@@ -1017,10 +1027,20 @@
    <property name="text">
     <string>Quit</string>
    </property>
+   <property name="font">
+    <font>
+     <pointsize>14</pointsize>
+    </font>
+   </property>
   </action>
   <action name="actionHelp">
    <property name="text">
     <string>About</string>
+   </property>
+   <property name="font">
+    <font>
+     <pointsize>14</pointsize>
+    </font>
    </property>
   </action>
   <action name="actionPostion">
@@ -1030,6 +1050,11 @@
    <property name="text">
     <string>Postion</string>
    </property>
+   <property name="font">
+    <font>
+     <pointsize>14</pointsize>
+    </font>
+   </property>
   </action>
   <action name="actionVeclocity">
    <property name="checkable">
@@ -1037,6 +1062,11 @@
    </property>
    <property name="text">
     <string>Veclocity</string>
+   </property>
+   <property name="font">
+    <font>
+     <pointsize>14</pointsize>
+    </font>
    </property>
   </action>
   <action name="actionTorque">
@@ -1046,6 +1076,11 @@
    <property name="text">
     <string>Torque</string>
    </property>
+   <property name="font">
+    <font>
+     <pointsize>14</pointsize>
+    </font>
+   </property>
   </action>
   <action name="actionTemperature">
    <property name="checkable">
@@ -1053,6 +1088,11 @@
    </property>
    <property name="text">
     <string>Temperature</string>
+   </property>
+   <property name="font">
+    <font>
+     <pointsize>14</pointsize>
+    </font>
    </property>
   </action>
  </widget>

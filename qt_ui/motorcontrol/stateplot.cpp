@@ -13,8 +13,15 @@ StatePlot::StatePlot(QWidget *parent) :
     this->setAttribute(Qt::WA_DeleteOnClose,true); //关闭时自动删除
 
     m_chart= new Chart();
+    m_chart->legend()->hide();
+    m_chart->setTitleFont(QFont("Monospace",16));
+    m_chart->m_axisX->setTitleFont(QFont("Monospace",12));
+    m_chart->m_axisY->setTitleFont(QFont("Monospace",12));
+    m_chart->m_series->setUseOpenGL(true);
+    m_chart->setAnimationOptions(QChart::AllAnimations);
     chartView = new QChartView(m_chart);
     chartView->setRenderHint(QPainter::Antialiasing);
+    chartView->setRubberBand(QChartView::RectangleRubberBand);
     ui->gridLayout->addWidget(chartView);
     setLayout(ui->gridLayout);
 
@@ -29,7 +36,7 @@ StatePlot::~StatePlot()
 void StatePlot::generateData(std::vector<float> data){
 
     qreal x = m_chart->plotArea().width() / m_chart->m_axisX->tickCount();
-     
+
     m_chart->m_x = data[0];  //实时x坐标
     m_chart->m_y = data[1];  //实时y坐标
 
