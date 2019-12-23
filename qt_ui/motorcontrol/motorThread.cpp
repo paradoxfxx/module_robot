@@ -56,44 +56,6 @@ MotorThread::MotorThread(){
 
 void MotorThread::run(){
 
-    // while(! is_stop_){
-
-    //     mutex_.lock();
-    //         if(have_new_command_){
-    //             if(opmode_ == PROFILE_POSITION_MODE){
-    //                 motor_1->sentPos(pos_command_);
-    //             }else if(opmode_ == PROFILE_VELOCITY_MODE){
-    //                 motor_1->sentVel(vel_command_);
-    //             }else if(opmode_ == TORQUE_PROFILE_MODE){
-    //                 motor_1->sentTorque(torque_command_);
-    //             }
-    //             have_new_command_ = false;
-    //         }
-
-    //         motor_1->get_feedback();
-    //         motor_pos_ = motor_1->getMotorPos();
-    //         motor_vel_ = motor_1->getMotorVel();
-    //         motor_torque_ = motor_1->getMotorTorque();
-
-    //         joint_pos_ = motor_1->getJointPos();
-    //         joint_vel_ = motor_1->getJointVel();
-    //         joint_torque_ = motor_1->getJointTorque();
-    //         chip_temp_ = motor_1->getChipTemp();
-    //     mutex_.unlock();
-
-    //     vector_.clear();
-    //     vector_.push_back(motor_pos_);
-    //     vector_.push_back(motor_vel_);
-    //     vector_.push_back(motor_torque_);
-    //     vector_.push_back(joint_pos_);
-    //     vector_.push_back(joint_vel_);
-    //     vector_.push_back(joint_torque_);
-    //     vector_.push_back(chip_temp_);
-    //     emit uploadFeedback(vector_);
-
-    //     this->usleep(800); /*800 us */
-    // }
-
     rt_task_create(&task_command_,"task_command_",0,THREAD_MOTOR_FEEDBACK_PRIORITY,0);
     rt_task_create(&task_feedback_,"task_feedback_",0,THREAD_MOTOR_COMMAND_PRIORITY,0);
     rt_mutex_create(&mutex_,"xenomai_thread_command_and_feedback");
@@ -130,18 +92,24 @@ void MotorThread::taskSentCommand(void *){
 		rt_task_wait_period(NULL);
 
         rt_mutex_acquire(&mutex_,mutex_timeout);
+
             if(if_new_opmode_command_ != opmode_){
                 motor_1->changeOPmode(opmode_);
                 if_new_opmode_command_ = opmode_;
             }
 
             if(have_new_command_){
-                if(opmode_ == PROFILE_POSITION_MODE){
-                    motor_1->sentPos(pos_command_);
-                }else if(opmode_ == PROFILE_VELOCITY_MODE){
-                    motor_1->sentVel(vel_command_);
-                }else if(opmode_ == TORQUE_PROFILE_MODE){
-                    motor_1->sentTorque(torque_command_);
+
+                switch(opmode_){
+                    case PROFILE_POSITION_MODE:
+                        motor_1->sentPos(pos_command_);
+                        break;
+                    case PROFILE_VELOCITY_MODE:
+                        motor_1->sentVel(vel_command_);
+                        break;
+                    case TORQUE_PROFILE_MODE:
+                        motor_1->sentTorque(torque_command_);
+                        break;
                 }
                 have_new_command_ = false;
             }
@@ -149,11 +117,13 @@ void MotorThread::taskSentCommand(void *){
             if(is_quickstop_){
                 motor_1->motor_quick_stop();
                 motor_1->shutdown();
+                rt_mutex_release(&mutex_);
                 break;
             }
 
             if(is_stop_){
                 motor_1->shutdown();
+                rt_mutex_release(&mutex_);
                 break;
             }
 
@@ -173,8 +143,10 @@ void MotorThread::taskSentCommand(void *){
 
 void MotorThread::taskFeedback(void *){
     rt_task_set_periodic(NULL, TM_NOW, 1000000);    /*1ms */
+    RTIME start , end;
+    start = rt_timer_read();
 
-    while(!is_stop_){
+    while((!is_stop_) || (!is_quickstop_)){
 
     	rt_task_wait_period(NULL);
 
@@ -198,8 +170,9 @@ void MotorThread::taskFeedback(void *){
         vector_.push_back(joint_vel_);
         vector_.push_back(joint_torque_);
         vector_.push_back(chip_temp_);
-        sentFeedback(vector_, *sent_feedback_);
-
+        end = rt_timer_read();
+        vector_.push_back((end-start)/1000000.0);
+        emit sent_feedback_->uploadFeedback(vector_);
     }   
 }
 
@@ -212,10 +185,12 @@ void MotorThread::motorStart(){
     }catch(std::exception &e){
         emit sentMotorOpenError(true);
         QMessageBox::warning(NULL, "warning", e.what());
-        /*test code */
-        // std::vector<float> test = {1,1,1,1,1,1,1,1}; 
-        // sentFeedback(test, *sent_feedback_);
+
+        // /*test code */
+        // std::vector<float> test = {1.1,1.1,1,1,1,1,1,1}; 
+        // emit sent_feedback_->uploadFeedback(test);
         /*test end */   
+
         return;
     }
     emit sentMotorOpenError(false);
@@ -226,7 +201,6 @@ void MotorThread::motorStart(){
  }
 
 void MotorThread::motorStop(){
-
 
     is_stop_ = true;
 
@@ -247,7 +221,6 @@ void MotorThread::motorHaltContinue(){
 void MotorThread::motorQuickStop(){
 
     is_quickstop_ = true;
-
 
 }
 
@@ -279,19 +252,6 @@ void MotorThread::sentMotorTorque(float torque){
     torque_command_ = torque;
 
 }
-
-
-// void MotorThread::sentFeedback(std::vector<float> vector){
-//     tansmit_feedback->dealSentFeedback(vector);
-// }
-
-// void MotorThread::dealSentFeedback(std::vector<float> vector){
-//     emit this->uploadFeedback(vector);
-// }
-
-void MotorThread::sentFeedback(std::vector<float> vector, MotorThread &thread){
-    thread.uploadFeedback(vector);
-} 
 
 
 

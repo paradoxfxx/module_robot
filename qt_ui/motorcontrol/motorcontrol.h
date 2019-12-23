@@ -33,6 +33,11 @@ signals:
     void sentMotorVel(float velocity);
     void sentMotorTorque(float torque);
 
+    void sentPlotPosData(std::vector<float>);
+    void sentPlotVelData(std::vector<float>);
+    void sentPlotTorData(std::vector<float>);
+    void sentPlotTempData(std::vector<float>);
+
 
 private slots:
     void on_pushButton_clicked();
@@ -47,9 +52,6 @@ private slots:
 
     void on_pushButton_5_clicked();
 
-    void on_actionStatePlot_triggered();
-
-
     void on_actionQuit_triggered();
 
     void on_actionHelp_triggered();
@@ -58,11 +60,29 @@ private slots:
 
     void get_feedback_data(std::vector<float> vector);
 
+    void on_actionPostion_triggered();
+
+    void on_actionVeclocity_triggered();
+
+    void on_actionTorque_triggered();
+
+    void on_actionTemperature_triggered();
+
 private:
 
     Ui::MotorControl *ui;
-    StatePlot *ui_state_plot;
+    StatePlot *ui_state_plot_pos;
+    StatePlot *ui_state_plot_vel;
+    StatePlot *ui_state_plot_tor;
+    StatePlot *ui_state_plot_temp;
+
     MotorThread *thread_;
+    static bool plot_pos;
+    static bool plot_vel;
+    static bool plot_tor;
+    static bool plot_temp;
+
+    static std::vector<float>plot_data;
 };
 
 #endif // MOTORCONTROL_H

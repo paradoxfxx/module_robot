@@ -2,7 +2,8 @@
 #define STATEPLOT_H
 
 #include <QDialog>
-#include <QtCharts>
+#include "chart.h"
+#include <QChartView>
 
 namespace Ui {
 class StatePlot;
@@ -14,12 +15,18 @@ class StatePlot : public QDialog
 
 public:
     explicit StatePlot(QWidget *parent = nullptr);
-
-
     ~StatePlot();
 
-private:
+
+public slots:
+    void generateData(std::vector<float> data);
+
+
+public:
     Ui::StatePlot *ui;
+    Chart *m_chart;
+    QChartView *chartView;
+
 };
 
 #endif // STATEPLOT_H

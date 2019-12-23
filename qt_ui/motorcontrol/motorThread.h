@@ -6,7 +6,6 @@
 #include <QMutex>
 
 #include "robot_control/robot_joint_client.h"
-#include "sentFeedback.h"
 
 
 class MotorThread : public QThread
@@ -16,9 +15,6 @@ public:
     explicit MotorThread();
     ~MotorThread();
     static MotorThread *sent_feedback_;
-
-private:
-    static void sentFeedback(std::vector<float> vector, MotorThread &thread); 
 
 protected:
     //线程处理函数

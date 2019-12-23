@@ -997,7 +997,17 @@
     <property name="title">
      <string>Tool</string>
     </property>
-    <addaction name="actionStatePlot"/>
+    <widget class="QMenu" name="menuStatePlot">
+     <property name="title">
+      <string>StatePlot</string>
+     </property>
+     <addaction name="actionPostion"/>
+     <addaction name="separator"/>
+     <addaction name="actionVeclocity"/>
+     <addaction name="actionTorque"/>
+     <addaction name="actionTemperature"/>
+    </widget>
+    <addaction name="menuStatePlot"/>
    </widget>
    <addaction name="menuFile"/>
    <addaction name="menuTool"/>
@@ -1008,14 +1018,41 @@
     <string>Quit</string>
    </property>
   </action>
-  <action name="actionStatePlot">
-   <property name="text">
-    <string>StatePlot</string>
-   </property>
-  </action>
   <action name="actionHelp">
    <property name="text">
     <string>About</string>
+   </property>
+  </action>
+  <action name="actionPostion">
+   <property name="checkable">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Postion</string>
+   </property>
+  </action>
+  <action name="actionVeclocity">
+   <property name="checkable">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Veclocity</string>
+   </property>
+  </action>
+  <action name="actionTorque">
+   <property name="checkable">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Torque</string>
+   </property>
+  </action>
+  <action name="actionTemperature">
+   <property name="checkable">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Temperature</string>
    </property>
   </action>
  </widget>
