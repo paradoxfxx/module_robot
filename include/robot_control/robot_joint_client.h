@@ -36,6 +36,12 @@ public:
     void motor_quick_stop_continue();
 
     /**
+    * \brief shutdown the communication. 
+    * \return void
+    */
+    void shutdown();
+
+    /**
     * \brief sent position to the motor
     * \unit degree
     * \return void
@@ -60,11 +66,25 @@ public:
     void sentTorqueOffset(float torque);
 
     /**
-    * \brief sent trajectory to the motor
+    * \brief sent position trajectory to the motor , only for CYCLIC_SYNCHRONOUS_POSITION_MODE
     * \unit degree
     * \return int(0:success, -1:error)
     */
     int sentPosTraj(std::vector<float>points);
+
+    /**
+    * \brief sent velocity trajectory to the motor,  only for CYCLIC_SYNCHRONOUS_VELOCITY_MODE
+    * \unit degree/s
+    * \return int(0:success, -1:error)
+    */
+    int sentVelTraj(std::vector<float>points);
+
+   /**
+    * \brief sent velocity trajectory to the motor, only for CYCLIC_SYNCHRONOUS_TORQUE_MODE
+    * \unit mN.m
+    * \return int(0:success, -1:error)
+    */
+    int sentTorqueTraj(std::vector<float>points);
 
     /**
     * \brief change the operation mode. 
@@ -125,11 +145,7 @@ public:
     */
     float getJointTorque() const;
 
-    /**
-    * \brief shutdown the communication. 
-    * \return void
-    */
-    void shutdown();
+
 
 
     /*test code  */
@@ -143,15 +159,9 @@ public:
 
 private:
     
-    // static void get_feedback(void *stop_flag);
-
-
-
     elmo_control::ElmoClient* client;
     elmo_control::ElmoInput input;
     elmo_control::ElmoOutput output;
-
-	
 
 };
 

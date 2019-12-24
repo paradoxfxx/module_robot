@@ -92,6 +92,7 @@ void demo_2(void *stop_flag){
 			fp = fopen("./test.txt", "w+");
 
 			now = rt_timer_read();
+			// printf("%lld\n",now);
 			fclose(fp);
 
 			printf("time pass : %.4f ms \n", (now - previous) / 1000000.0);

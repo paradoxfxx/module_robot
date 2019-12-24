@@ -5,13 +5,12 @@
 
 int main(int argc, char const *argv[])
 {
-    bool real_time = true;
     int slave_no = 1;
 
     elmo_control::ElmoInput input;
     elmo_control::ElmoOutput output;
 
-    ethercat::EtherCatManager manager(NETWORK_CARD_NAME,true);
+    ethercat::EtherCatManager manager(NETWORK_CARD_NAME);
     elmo_control::ElmoClient * client;
     client = new elmo_control::ElmoClient( manager, slave_no);
 

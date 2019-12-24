@@ -90,7 +90,8 @@ void RobotJointClient::motor_quick_stop(){
 void RobotJointClient::motor_quick_stop_continue(){
 	client->reset();
 	client->servoOn();
-}  
+}
+
 
 void RobotJointClient::sentPos(float pos){
     // output.controlword |= 0x0f;
@@ -164,6 +165,15 @@ int RobotJointClient::sentPosTraj(std::vector<float>points){
 		return -1;
 	}
 }
+
+int RobotJointClient::sentVelTraj(std::vector<float>points){
+	
+} 
+
+int RobotJointClient::sentTorqueTraj(std::vector<float>points){
+
+}
+
 
 bool RobotJointClient::changeOPmode(uint8 opmode){
 
@@ -256,7 +266,5 @@ int8_t RobotJointClient::getBuffPos(){
 int16_t RobotJointClient::getChipTemp(){
 	return (client->readChipTemp());
 } 
-
-
 /********************************************************************/
 }// end of robot_control namespace

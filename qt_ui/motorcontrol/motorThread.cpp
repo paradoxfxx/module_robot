@@ -179,7 +179,7 @@ void MotorThread::taskFeedback(void *){
 void MotorThread::motorStart(){
 
     try{
-        manager_ = new ethercat::EtherCatManager(NETWORK_CARD_NAME , 1);
+        manager_ = new ethercat::EtherCatManager(NETWORK_CARD_NAME);
         motor_1 = new robot_control::RobotJointClient(*manager_, true);
 
     }catch(std::exception &e){

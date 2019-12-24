@@ -21,10 +21,10 @@
 // sensor range : +-200 Nm
 // analog range : +- 10000
 // 0.02 = 200 / 10000
-#define TORQUE_ALALOG_TRANSITION(VOLTAGE)   (int16)(VOLTAGE) * 0.02
+#define TORQUE_ALALOG_TRANSITION(VOLTAGE)   ((int16_t)(VOLTAGE) * 0.02)
 
 
-#define PI 3.141592
+#define PI 3.1415926
 
 // covert radian to degree
 #define PI_RAD_DEG 57.295779513
@@ -44,18 +44,16 @@
 #define DCC 5000
 
 /*convert user torque(mN.m) to motor torque(per thousand of rate torque) */
-#define TORQUE_USER_TO_MOTOR(TORQUE)    (int16_t)(int(TORQUE*1000.0/RATE_TORQUE))
+#define TORQUE_USER_TO_MOTOR(TORQUE)    (int16_t)(int(TORQUE * 1000.0 / RATE_TORQUE))
 
 /*convert motor torque(per thousand of rate torque) to user torque(mN.m) */
-#define TORQUE_MOTOR_TO_USER(TORQUE)    ((int16_t)(TORQUE)/1000.0*RATE_TORQUE) 
+#define TORQUE_MOTOR_TO_USER(TORQUE)    ((int16_t)(TORQUE) * RATE_TORQUE / 1000.0) 
 
 /*convert motor data(pos,vel())to motor(count) */
 #define DATA_TO_COUNT(DATA)             (int32_t)(DATA/360.0*RELATIVE_RESOLUTION)
 
 /*convert motor data(cout) to motor(pos,vel) */
 #define COUNT_TO_DATA(COUNT)            ((int32_t)(COUNT)/RELATIVE_RESOLUTION*360.0)
-
-
 /*************************************MOTOR END***************************************/
 
 /****************************************ETHERCAT*************************************/
@@ -101,7 +99,8 @@ typedef enum {  NO_MODE_CHANGE_1 = 0,
 /****************************************THREAD PRIORITY*************************************/
 #define THREAD_ETHERCAT_PRIORITY        20
 #define THREAD_MOTOR_FEEDBACK_PRIORITY  21
-#define THREAD_TRAJECTORY_PRIORITY      22
+#define THREAD_MOTOR_COMMAND_PRIORITY  21
+#define THREAD_TRAJECTORY_PRIORITY      23
 /*************************************THREAD PRIORITY END*************************************/
 
 #endif

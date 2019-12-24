@@ -1,12 +1,12 @@
 #include <ethercat_manager/ethercat_manager.h>
-#include <ethercat_manager/ecat_dc.h>
+// #include <ethercat_manager/ecat_dc.h>
 
 #include <unistd.h>
 #include <stdio.h>
-#include <time.h>
+// #include <time.h>
 
-#include <boost/ref.hpp>
-#include <boost/interprocess/sync/scoped_lock.hpp>
+// #include <boost/ref.hpp>
+// #include <boost/interprocess/sync/scoped_lock.hpp>
 
 #include <ethercattype.h>
 #include <nicdrv.h>
@@ -20,25 +20,13 @@
 
 namespace
 {
-static const unsigned THREAD_SLEEP_TIME = 1000; // 1000us
 static const unsigned EC_TIMEOUTMON = 500;
-static const int NSEC_PER_SECOND = 1e+9;
 
 static const RTIME period_xenomai = 900000;  /*900us */
 static const RTIME timeout = 1000000; /*1 ms */
 
 RT_MUTEX mutex_;
 RT_TASK task;
-
-void timespecInc(struct timespec &tick, int nsec)
-{
-  tick.tv_nsec += nsec;
-  while (tick.tv_nsec >= NSEC_PER_SECOND)
-    {
-      tick.tv_nsec -= NSEC_PER_SECOND;
-      tick.tv_sec++;
-    }
-}
 
 void handleErrors()
 {
@@ -130,72 +118,23 @@ void cycleWorker_xenomai(void *)
   	}
 }
 
-void cycleWorker(boost::mutex& mutex, bool& stop_flag)
-{
-	double period = THREAD_SLEEP_TIME * 1000;
-
-	// get curren ttime
-	struct timespec tick;
-	clock_gettime(CLOCK_REALTIME, &tick);
-	timespecInc(tick, period);
-
-
-	while (!stop_flag)
-	{
-		int expected_wkc = (ec_group[0].outputsWKC * 2) + ec_group[0].inputsWKC;
-		int sent, wkc;
-
-		{
-			boost::mutex::scoped_lock lock(mutex);
-			sent = ec_send_processdata();
-			wkc = ec_receive_processdata(EC_TIMEOUTRET);
-		}
-
-		if (wkc < expected_wkc)
-		{
-			handleErrors();
-		}
-		// check overrun
-		struct timespec before;
-		clock_gettime(CLOCK_REALTIME, &before);
-		double overrun_time = (before.tv_sec + double(before.tv_nsec)/NSEC_PER_SECOND) -  (tick.tv_sec + double(tick.tv_nsec)/NSEC_PER_SECOND);
-		if (overrun_time > 0.0)
-			{
-				fprintf(stderr, "  overrun: %f\n", overrun_time);
-			}
-		clock_nanosleep(CLOCK_REALTIME, TIMER_ABSTIME, &tick, NULL);
-		timespecInc(tick, period);
-	}
-
-}
-
-
-
 } // end of anonymous namespace
 
 
 namespace ethercat {
 
-EtherCatManager::EtherCatManager(const std::string& ifname,bool realtime)
+EtherCatManager::EtherCatManager(const std::string& ifname)
   : ifname_(ifname),
-  	real_time_(realtime),
-    num_clients_(0),
-    stop_flag_(false)
-
+    num_clients_(0)
 {
   if (initSoem(ifname))
   {
-    if (real_time_){
 
-		rt_mutex_create(&mutex_,"cyclerWorker_mutex");
-		rt_task_create(&task, "cycleWorker_xenomai", 0, THREAD_ETHERCAT_PRIORITY, 0);
-		rt_task_start(&task, &cycleWorker_xenomai, (void *)NULL);
-	}else{
 
-		cycle_thread_ = boost::thread(cycleWorker,
-								boost::ref(iomap_mutex_),
-								boost::ref(stop_flag_));
-	}
+	rt_mutex_create(&mutex_,"cyclerWorker_mutex");
+	rt_task_create(&task, "cycleWorker_xenomai", 0, THREAD_ETHERCAT_PRIORITY, 0);
+	rt_task_start(&task, &cycleWorker_xenomai, (void *)NULL);
+
 
 
   }
@@ -208,7 +147,7 @@ EtherCatManager::EtherCatManager(const std::string& ifname,bool realtime)
 
 EtherCatManager::~EtherCatManager()
 {
-	stop_flag_ = true;
+	
 
 	// Request init operational state for all slaves
 	ec_slave[0].state = EC_STATE_INIT;
@@ -218,13 +157,10 @@ EtherCatManager::~EtherCatManager()
 
 	//stop SOEM, close socket
 	ec_close();
-	if(!real_time_)
-	{
-		cycle_thread_.join();
-	}else{
-		rt_mutex_delete(&mutex_);
-		rt_task_delete(&task);
-	}
+
+	rt_mutex_delete(&mutex_);
+	rt_task_delete(&task);
+
 }
 
 #define IF_ELMO(_ec_slave) 1
@@ -515,88 +451,6 @@ int EtherCatManager::getNumClinets() const
 {
 	return num_clients_;
 }
-
-bool EtherCatManager::ifRealtime() const{
-	return real_time_;
-}
-
-
-
-// void EtherCatManager::initDistributeClock()
-// {
-
-//       cycle_ns = 250000; //250us
-//       cur_DCtime = 0, max_DCtime = 0;
-//       cur_dc32=0, pre_dc32=0;
-//       shift_time=125000; // (125us) dc event shifted compared to master reference clock
-
-//     	for (int i=1; i<=ec_slavecount; ++i)
-// 		    ec_dcsync0(i, TRUE, cycle_ns, 0); // SYNC0,1 on slave 1
-
-//       cycletime = cycle_ns, cur_time=0;
-//       cur_cycle_cnt = 0, toff = 0;
-
-//       //get DC time for first time
-// 	    ec_send_processdata();
-
-//       cur_time=rt_timer_read();			//get current master time
-//       cur_cycle_cnt=cur_time/cycle_ns;	//calcualte number of cycles has passed
-//       cycle_time=cur_cycle_cnt*cycle_ns;	
-//       remain_time = cur_time%cycle_ns;	//remain time to next cycle, test only
-      
-//       rt_printf("cycle_cnt=%lld\n", cur_cycle_cnt);
-//       rt_printf("remain_time=%lld\n", remain_time);
-
-//       int wkc;
-//       wkc = ec_receive_processdata(EC_TIMEOUTRET); 	//get reference DC time
-//       cur_dc32= (uint32_t) (ec_DCtime & 0xffffffff);	//only consider first 32-bit
-//       dc_remain_time=cur_dc32%cycletime;				//remain time to next cycle of REF clock, update to master
-//       rt_ts=cycle_time+dc_remain_time;					//update master time to REF clock
-//       rt_printf("dc remain_time=%lld\n", dc_remain_time);
-//       rt_task_sleep_until(rt_ts);
-// }
-
-
-// void EtherCatManager::waitnextperiod(){
-//       rt_ts += (RTIME) (cycle_ns + toff);
-//       rt_task_sleep_until(rt_ts);
-// }
-
-// void EtherCatManager::updateDistributeClock(){
-//         int recv_fail_cnt = 0;
-//         wkc = 0;
-
-//         previous = rt_timer_read();
-
-//         ec_send_processdata();
-//         wkc = ec_receive_processdata(EC_TIMEOUTRET);
-
-//         if (wkc<3*(ec_slavecount)){
-//             recv_fail_cnt++;
-//             rt_printf("recv_fail_cnt=%d\n", recv_fail_cnt);
-//         }
-
-//         now = rt_timer_read();
-//         ethercat_time = (long) (now - previous);
-//         rt_printf("ethercat cycle time =%ld\n", ethercat_time);
-
-//         cur_dc32= (uint32_t) (ec_DCtime & 0xffffffff); 	//use 32-bit only
-//         if (cur_dc32>pre_dc32)							//normal case
-//             diff_dc32=cur_dc32-pre_dc32;
-//         else												//32-bit data overflow
-//             diff_dc32=(0xffffffff-pre_dc32)+cur_dc32;
-//         pre_dc32=cur_dc32;
-//         cur_DCtime+=diff_dc32;
-
-//         toff=dc_pi_sync(cur_DCtime, cycletime, shift_time);
-//         if (cur_DCtime>max_DCtime) max_DCtime=cur_DCtime;
-// }
-
-// void EtherCatManager::sent_receive_eth_msg(){
-
-//     ec_send_processdata();
-//     ec_receive_processdata(EC_TIMEOUTRET);
-// }
 
 template uint8_t EtherCatManager::writeSDO<char> (int slave_no, uint16_t index, uint8_t subidx, char value) const;
 template uint8_t EtherCatManager::writeSDO<int> (int slave_no, uint16_t index, uint8_t subidx, int value) const;

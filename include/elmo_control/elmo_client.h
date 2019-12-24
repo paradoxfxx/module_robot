@@ -123,6 +123,8 @@ public:
    */
   int setMaxTorque(uint16_t max_torque);
 
+  
+
   /*
    * \brief get the absolute position encoder Pos by SDO 
    * \return uint32_t
@@ -204,11 +206,11 @@ public:
 
 private:
 
+  template<class DATA_TYPE>
+  int setSDO( uint16_t index, DATA_TYPE val);
 
   ethercat::EtherCatManager& manager_;
-
   const int slave_no_;
-
   int interpolationTimePeriod;
 
 };

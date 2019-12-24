@@ -25,16 +25,22 @@ DEFINES += QT_DEPRECATED_WARNINGS
 CONFIG += c++11
 
 SOURCES += \
-        main.cpp \
-        motorcontrol.cpp \ 
-        stateplot.cpp   \
-        ./../../src/robot_control/robot_joint_client.cpp        \
+#        ./../../src/robot_control/robot_joint_client.cpp        \
+#        ./../../src/elmo_control/elmo_client.cpp               \
+#        ./../../src/ethercat_manager/ethercat_manager.cpp          \
+        main.cpp            \
+        motorcontrol.cpp    \
+        stateplot.cpp       \
         motorThread.cpp
 
 HEADERS += \
+#        /usr/xenomai/include/*    \
+#        ./../../include/common.h    \
+#        ./../../include/robot_control/robot_joint_client.h      \
+#        ./../../include/elmo_control/elmo_client.h              \
+#        ./../../include/ethercat_manager/ethercat_manager.h     \
         motorcontrol.h \ 
         stateplot.h     \
-        ./../../include/robot_control/robot_joint_client.h  \
         motorThread.h
 
 FORMS += \

@@ -54,4 +54,4 @@ ADD_EXECUTABLE(ui_motor_control
 )
 
 #为target添加需要链接的共享库
-TARGET_LINK_LIBRARIES(ui_motor_control ${Qt5Widgets_LIBRARIES} ${Qt5Charts_LIBRARIES}  ${Boost_LIBRARIES} RobotJointClient)
+TARGET_LINK_LIBRARIES(ui_motor_control ${Qt5Widgets_LIBRARIES} ${Qt5Charts_LIBRARIES}  RobotJointClient)

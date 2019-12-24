@@ -52,7 +52,7 @@ public:
     * Constructor can throw EtherCatError exception if SOEM could not be 
     * initialized.
     */
-    EtherCatManager(const std::string& ifname, bool realtime = false);
+    EtherCatManager(const std::string& ifname);
 
 
     ~EtherCatManager();
@@ -142,22 +142,8 @@ private:
     const std::string ifname_;
     uint8_t iomap_[4096];
     int num_clients_;
-    boost::thread cycle_thread_;
     mutable boost::mutex iomap_mutex_;
-    bool stop_flag_;
-
-    //for dc computation
-    unsigned int cycle_ns;
-    long long toff;
-    long long cur_DCtime;
-    long long max_DCtime;
-    unsigned long long cur_dc32;
-    unsigned long long pre_dc32;
-    int32_t shift_time; //dc event shifted compared to master reference clock
-    long long  diff_dc32;
-    long ethercat_time;
     int wkc;
-
     bool real_time_;
 
 

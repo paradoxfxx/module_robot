@@ -1,10 +1,8 @@
 #include <stdio.h>
 #include <elmo_control/elmo_client.h>
 
-// An effort to keep the lines less than 100 char long
 namespace elmo_control
 {
-static const unsigned SLEEP_TIME_MS = 1; // 1 ms
 
 ElmoClient::ElmoClient(ethercat::EtherCatManager& manager, int slave_no)
   : manager_(manager)
@@ -164,7 +162,7 @@ void ElmoClient::servoOff()
 				break;
 		}
 		writeOutputs(output);
-		usleep(SLEEP_TIME_MS*1000);
+		rt_timer_spin(DEFAULT_INTERPOLATION_TIME_PERIOD);
 		input = readInputs();
 		if (loop++ % 100 == 1) printPDSStatus(input);
 	}
@@ -377,93 +375,115 @@ void ElmoClient::printPDSControl(const ElmoInput input) const
 
 int ElmoClient::setProfileVelocity(uint32_t val)
 {
-	// 6091h, unit: pulse, range: 0 - 4294967295, U32
-	uint32_t u32val = (uint32_t)val;
-	manager_.writeSDO<uint32_t>(slave_no_, 0x6081, 0x00, u32val);
-	int ret = 0 ;
-	uint32_t temp;
-	 int timeout = 10;
-	RTIME now, previous;	/*ns */
-	previous = rt_timer_read(); 
-	while(temp != u32val){
-		printf("setProfileVelocity...\n");
-		manager_.writeSDO<uint32_t>(slave_no_, 0x6081, 0x00, u32val);
-		temp = manager_.readSDO<uint32_t>(slave_no_,0x6081,0x00);
-		rt_timer_spin(DEFAULT_INTERPOLATION_TIME_PERIOD);  
-		if((now - previous) / 1e9 >= timeout ){	
-			ret = -1;
-			break;
-		} 
-	}
+	// // 6091h, unit: pulse, range: 0 - 4294967295, U32
+	// uint32_t u32val = (uint32_t)val;
+	// manager_.writeSDO<uint32_t>(slave_no_, 0x6081, 0x00, u32val);
+	// int ret = 0 ;
+	// uint32_t temp;
+	//  int timeout = 10;
+	// RTIME now, previous;	/*ns */
+	// previous = rt_timer_read(); 
+	// while(temp != u32val){
+	// 	printf("setProfileVelocity...\n");
+	// 	manager_.writeSDO<uint32_t>(slave_no_, 0x6081, 0x00, u32val);
+	// 	temp = manager_.readSDO<uint32_t>(slave_no_,0x6081,0x00);
+	// 	rt_timer_spin(DEFAULT_INTERPOLATION_TIME_PERIOD);  
+	// now = rt_timer_read(); 
+	// 	if((now - previous) / 1e9 >= timeout ){	
+	// 		ret = -1;
+	// 		break;
+	// 	} 
+	// }
+	// return ret;
+	printf("setProfileVelocity...\n");
+	int ret;
+	ret = setSDO( uint16_t(0x6081), val);
 	return ret;
 }
 
 int ElmoClient::setMaxVelocity(uint32_t max_velocity)
 {
-	uint32_t u32val = (uint32_t)max_velocity;
-	manager_.writeSDO<uint32_t>(slave_no_, 0x6080, 0x00, u32val);
-	int ret = 0 ;
-	uint32_t temp;
-	 int timeout = 10;
-	RTIME now, previous;	/*ns */
-	previous = rt_timer_read(); 
-	while(temp != u32val){
-		printf("setMaxVelocity...\n");
-		manager_.writeSDO<uint32_t>(slave_no_, 0x6080, 0x00, u32val);
-		temp = manager_.readSDO<uint32_t>(slave_no_,0x6080,0x00);
-		rt_timer_spin(DEFAULT_INTERPOLATION_TIME_PERIOD);  
-		if((now - previous) / 1e9 >= timeout ){	
-			ret = -1;
-			break;
-		} 
-	}
+	// uint32_t u32val = (uint32_t)max_velocity;
+	// manager_.writeSDO<uint32_t>(slave_no_, 0x6080, 0x00, u32val);
+	// int ret = 0 ;
+	// uint32_t temp;
+	//  int timeout = 10;
+	// RTIME now, previous;	/*ns */
+	// previous = rt_timer_read(); 
+	// while(temp != u32val){
+	// 	printf("setMaxVelocity...\n");
+	// 	manager_.writeSDO<uint32_t>(slave_no_, 0x6080, 0x00, u32val);
+	// 	temp = manager_.readSDO<uint32_t>(slave_no_,0x6080,0x00);
+	// 	rt_timer_spin(DEFAULT_INTERPOLATION_TIME_PERIOD); 
+	// now = rt_timer_read();  
+	// 	if((now - previous) / 1e9 >= timeout ){	
+	// 		ret = -1;
+	// 		break;
+	// 	} 
+	// }
+	// return ret;
+	printf("setMaxVelocity...\n");
+	int ret;
+	ret = setSDO( uint16_t(0x6080), max_velocity);
 	return ret;
 }
 
 int ElmoClient::setMotorRateTorque(uint32_t rate_torque)
 {
 
-    // 6076h, unit: pulse, range: 0 - 4294967295, U32
-    uint32_t u32val = (uint32_t)rate_torque;
-    manager_.writeSDO<uint32_t>(slave_no_, 0x6076, 0x00, u32val);
-	int ret = 0 ;
-	uint32_t temp;
-	int timeout = 10;
-	RTIME now, previous;	/*ns */
-	previous = rt_timer_read(); 
-	while(temp != u32val){
-		printf("setMotorRateTorque...\n");
-		manager_.writeSDO<uint32_t>(slave_no_, 0x6076, 0x00, u32val);
-		temp = manager_.readSDO<uint32_t>(slave_no_,0x6076,0x00);
-		rt_timer_spin(DEFAULT_INTERPOLATION_TIME_PERIOD);  
-		if((now - previous) / 1e9 >= timeout ){	
-			ret = -1;
-			break;
-		} 
-	}
+    // // 6076h, unit: pulse, range: 0 - 4294967295, U32
+    // uint32_t u32val = (uint32_t)rate_torque;
+    // manager_.writeSDO<uint32_t>(slave_no_, 0x6076, 0x00, u32val);
+	// int ret = 0 ;
+	// uint32_t temp;
+	// int timeout = 10;
+	// RTIME now, previous;	/*ns */
+	// previous = rt_timer_read(); 
+	// while(temp != u32val){
+	// 	printf("setMotorRateTorque...\n");
+	// 	manager_.writeSDO<uint32_t>(slave_no_, 0x6076, 0x00, u32val);
+	// 	temp = manager_.readSDO<uint32_t>(slave_no_,0x6076,0x00);
+	// 	rt_timer_spin(DEFAULT_INTERPOLATION_TIME_PERIOD);  
+	// now = rt_timer_read(); 
+	// 	if((now - previous) / 1e9 >= timeout ){	
+	// 		ret = -1;
+	// 		break;
+	// 	} 
+	// }
+	// return ret;
+
+	printf("setMotorRateTorque...\n");
+	int ret;
+	ret = setSDO( uint16_t(0x6076), rate_torque);
 	return ret;
 }
 
 int ElmoClient::setMaxTorque(uint16_t max_torque){
 
-    uint16_t u16val = (uint16_t)max_torque;
-    manager_.writeSDO<uint16_t>(slave_no_, 0x6072, 0x00, u16val);
-	int ret = 0 ;
-	uint16_t temp;
-	 int timeout = 10;
-	RTIME now, previous;	/*ns */
-	previous = rt_timer_read(); 
-	while(temp != u16val){
-		printf("setMaxTorque...\n");
-		manager_.writeSDO<uint16_t>(slave_no_, 0x6072, 0x00, u16val);
-		temp = manager_.readSDO<uint16_t>(slave_no_,0x6072,0x00);
-		rt_timer_spin(DEFAULT_INTERPOLATION_TIME_PERIOD);  
-		if((now - previous) / 1e9 >= timeout ){	
-			ret = -1;
-			break;
-		} 
-	}
+    // uint16_t u16val = (uint16_t)max_torque;
+    // manager_.writeSDO<uint16_t>(slave_no_, 0x6072, 0x00, u16val);
+	// int ret = 0 ;
+	// uint16_t temp;
+	//  int timeout = 10;
+	// RTIME now, previous;	/*ns */
+	// previous = rt_timer_read(); 
+	// while(temp != u16val){
+	// 	printf("setMaxTorque...\n");
+	// 	manager_.writeSDO<uint16_t>(slave_no_, 0x6072, 0x00, u16val);
+	// 	temp = manager_.readSDO<uint16_t>(slave_no_,0x6072,0x00);
+	// 	rt_timer_spin(DEFAULT_INTERPOLATION_TIME_PERIOD);  
+	// now = rt_timer_read(); 
+	// 	if((now - previous) / 1e9 >= timeout ){	
+	// 		ret = -1;
+	// 		break;
+	// 	} 
+	// }
+	// return ret;
+	printf("setMaxTorque...\n");
+	int ret;
+	ret = setSDO( uint16_t(0x6072), max_torque);
 	return ret;
+
 }
 
 uint32_t ElmoClient::readMotorRateTorque()const
@@ -525,45 +545,58 @@ uint16_t ElmoClient::readActualBuffPos() const
 
   int ElmoClient::setAcc(uint32_t u32val){
 
-    manager_.writeSDO<uint32_t>(slave_no_, 0x6083, 0x00, u32val);
-	int ret = 0 ;
-	uint32_t temp;
-	int timeout = 10;
-	RTIME now, previous;	/*ns */
-	previous = rt_timer_read(); 
-	while(temp != u32val){
-		printf("setAcc...\n");
-		manager_.writeSDO<uint32_t>(slave_no_, 0x6083, 0x00, u32val);
-		temp = manager_.readSDO<uint32_t>(slave_no_,0x6083,0x00);
-		rt_timer_spin(DEFAULT_INTERPOLATION_TIME_PERIOD);  
-		if((now - previous) / 1e9 >= timeout ){	
-			ret = -1;
-			break;
-		} 
-	}
+    // manager_.writeSDO<uint32_t>(slave_no_, 0x6083, 0x00, u32val);
+	// int ret = 0 ;
+	// uint32_t temp;
+	// int timeout = 10;
+	// RTIME now, previous;	/*ns */
+	// previous = rt_timer_read(); 
+	// while(temp != u32val){
+	// 	printf("setAcc...\n");
+	// 	manager_.writeSDO<uint32_t>(slave_no_, 0x6083, 0x00, u32val);
+	// 	temp = manager_.readSDO<uint32_t>(slave_no_,0x6083,0x00);
+	// 	rt_timer_spin(DEFAULT_INTERPOLATION_TIME_PERIOD);  
+	// now = rt_timer_read(); 
+	// 	if((now - previous) / 1e9 >= timeout ){	
+	// 		ret = -1;
+	// 		break;
+	// 	} 
+	// }
+	// return ret;
+
+	printf("setAcc...\n");
+	int ret;
+	ret = setSDO( uint16_t(0x6083), u32val);
 	return ret;
 
   }
 
   int ElmoClient::setDcc(uint32_t u32val){
 
-	manager_.writeSDO<uint32_t>(slave_no_, 0x6084, 0x00, u32val);
-	int ret = 0 ;
-	uint32_t temp;
-	int timeout = 10;
-	RTIME now, previous;	/*ns */
-	previous = rt_timer_read(); 
-	while(temp != u32val){
-		printf("setAcc...\n");
-		manager_.writeSDO<uint32_t>(slave_no_, 0x6084, 0x00, u32val);
-		temp = manager_.readSDO<uint32_t>(slave_no_,0x6084,0x00);
-		rt_timer_spin(DEFAULT_INTERPOLATION_TIME_PERIOD);  
-		if((now - previous) / 1e9 >= timeout ){	
-			ret = -1;
-			break;
-		} 
-	}
+	// manager_.writeSDO<uint32_t>(slave_no_, 0x6084, 0x00, u32val);
+	// int ret = 0 ;
+	// uint32_t temp;
+	// int timeout = 10;
+	// RTIME now, previous;	/*ns */
+	// previous = rt_timer_read(); 
+	// while(temp != u32val){
+	// 	printf("setDcc...\n");
+	// 	manager_.writeSDO<uint32_t>(slave_no_, 0x6084, 0x00, u32val);
+	// 	temp = manager_.readSDO<uint32_t>(slave_no_,0x6084,0x00);
+	// 	rt_timer_spin(DEFAULT_INTERPOLATION_TIME_PERIOD);  
+	// now = rt_timer_read(); 
+	// 	if((now - previous) / 1e9 >= timeout ){	
+	// 		ret = -1;
+	// 		break;
+	// 	} 
+	// }
+	// return ret;
+
+	printf("setDcc...\n");
+	int ret;
+	ret = setSDO( uint16_t(0x6084), u32val);
 	return ret;
+
   }
 
   int16_t ElmoClient::readChipTemp(){
@@ -572,5 +605,33 @@ uint16_t ElmoClient::readActualBuffPos() const
 	return ret;
   }
 
+
+template <class DATA_TYPE >
+int ElmoClient::setSDO( uint16_t index, DATA_TYPE val)
+{
+
+    manager_.writeSDO<DATA_TYPE>(slave_no_, index, 0x00, val);
+
+    int ret = 0 ;
+    DATA_TYPE temp;
+    int timeout = 10;
+    RTIME now, previous;	/*ns */
+    previous = rt_timer_read(); 
+
+    while(temp != val){
+
+		manager_.writeSDO<DATA_TYPE>(slave_no_, index, 0x00, val);
+		temp = manager_.readSDO<DATA_TYPE>(slave_no_,index,0x00);
+		rt_timer_spin(DEFAULT_INTERPOLATION_TIME_PERIOD); 
+
+		now = rt_timer_read(); 
+
+		if((now - previous) / 1e9 >= timeout ){	
+			ret = -1;
+			break;
+      	} 
+    }
+    return ret;
+}
 
 } // end of elmo_control namespace

@@ -1,9 +1,8 @@
 #include <robot_control/robot_joint_client.h>
 
 int main(int argc, char *argv[]){
-	bool real_time = true;
 
-    ethercat::EtherCatManager manager(NETWORK_CARD_NAME,true);
+    ethercat::EtherCatManager manager(NETWORK_CARD_NAME);
 	
 	robot_control::RobotJointClient* joint1;
     joint1 = new robot_control::RobotJointClient (manager , 1);
