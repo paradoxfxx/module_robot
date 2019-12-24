@@ -4,6 +4,7 @@
 #include <QDialog>
 #include "chart.h"
 #include <QChartView>
+#include <QDebug>
 
 namespace Ui {
 class StatePlot;
@@ -15,8 +16,16 @@ class StatePlot : public QDialog
 
 public:
     explicit StatePlot(QWidget *parent = nullptr);
+
     ~StatePlot();
 
+private:
+    bool m_isTouching;
+
+protected:
+    void wheelEvent(QWheelEvent *event); 
+    void keyPressEvent(QKeyEvent *event);
+    // bool eventFilter(QObject *obj, QEvent *e);
 
 public slots:
     void generateData(std::vector<float> data);
