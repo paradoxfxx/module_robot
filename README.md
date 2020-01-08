@@ -42,10 +42,10 @@
 
 
 ### 2.1.3 test linux version
-> uname -a  
-**terminator show:**
-> Linux tan-pc 4.9.38-xenomai-3.0.5 #1 SMP Thu May 23 22:01:51 CST 2019 x86_64 x86_64 x86_64 GNU/Linux  
-**success**
+> uname -a      
+**terminator show:**     
+> Linux tan-pc 4.9.38-xenomai-3.0.5 #1 SMP Thu May 23 22:01:51 CST 2019 x86_64 x86_64 x86_64 GNU/Linux     
+**success**    
 
 ### 2.1.4 test Xenomai latency
 > cd /usr/xenomai/bin   
