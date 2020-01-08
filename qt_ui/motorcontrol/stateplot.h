@@ -8,7 +8,7 @@
 
 namespace Ui {
 class StatePlot;
-}
+};
 
 class StatePlot : public QDialog
 {

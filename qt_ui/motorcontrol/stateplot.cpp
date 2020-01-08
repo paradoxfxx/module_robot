@@ -34,17 +34,19 @@ StatePlot::~StatePlot()
     delete ui;
 }
 
+
 void StatePlot::generateData(std::vector<float> data){
+
 
     qreal x = m_chart->plotArea().width() / m_chart->m_axisX->tickCount();
 
-    m_chart->m_x = data[0];  //实时x坐标
+    m_chart->m_x += data[0];  //实时x坐标
     m_chart->m_y = data[1];  //实时y坐标
 
     m_chart->m_series->append(m_chart->m_x, m_chart->m_y);
  
     //实现整体平移,必须指明是QChart的方法，不然就是整个界面都平移
-    m_chart->scroll(x, 0);
+    // m_chart->scroll(x, 0);
 }
 
 void StatePlot::wheelEvent(QWheelEvent *event) 
@@ -105,4 +107,3 @@ void StatePlot::keyPressEvent(QKeyEvent *event)
         break;
     }
 }
-

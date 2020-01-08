@@ -2,6 +2,7 @@
 #include "ui_motorcontrol.h"
 #include <QMessageBox>
 #include <QMetaType>
+#include <qvalidator.h>
 
 bool MotorControl::plot_pos;
 bool MotorControl::plot_vel;
@@ -25,8 +26,17 @@ MotorControl::MotorControl(QWidget *parent) :
     ui->pushButton_4->setEnabled(0);
     ui->tabWidget->setEnabled(0);
 
-    thread_ = new MotorThread();
+    // input position,velocity limit in pp mode 
+    ui->lineEdit_6->setValidator(new QIntValidator(-50000,50000,this));
+    ui->lineEdit_7->setValidator(new QIntValidator(0,4000,this));
+    // input velocity limit in pv mode
+    ui->lineEdit_8->setValidator(new QIntValidator(-4000,4000,this));
+    // input torque limit in pt mode 
+    ui->lineEdit_9->setValidator(new QIntValidator(-1200,1200,this));
 
+
+
+    thread_ = new MotorThread();
     qRegisterMetaType<std::vector<float>>("std::vector<float>");
 
     connect(this,SIGNAL(motorStart()),thread_,SLOT(motorStart()));
@@ -35,7 +45,7 @@ MotorControl::MotorControl(QWidget *parent) :
     connect(this,SIGNAL(motorHaltContinue()),thread_,SLOT(motorHaltContinue()));
     connect(this,SIGNAL(motorQuickStop()),thread_,SLOT(motorQuickStop()));
     connect(this,SIGNAL(changeOpmode(uint8_t)),thread_,SLOT(changeOpmode(uint8_t)));
-    connect(this,SIGNAL(sentMotorPos(float)),thread_,SLOT(sentMotorPos(float)));
+    connect(this,SIGNAL(sentMotorPos(std::vector<float>)),thread_,SLOT(sentMotorPos(std::vector<float>)));
     connect(this,SIGNAL(sentMotorVel(float)),thread_,SLOT(sentMotorVel(float)));
     connect(this,SIGNAL(sentMotorTorque(float)),thread_,SLOT(sentMotorTorque(float)));
     connect(thread_,SIGNAL(sentMotorOpenError(bool)),this,SLOT(motor_start_error(bool)));
@@ -65,6 +75,7 @@ void MotorControl::on_pushButton_clicked()
 void MotorControl::on_pushButton_4_clicked()
 {
     ui->listWidget->addItem("Motor Stop...");
+    // printf("Motor Stop...");
     emit motorStop();
     ui->pushButton->setEnabled(1);
     ui->pushButton_2->setEnabled(0);
@@ -87,6 +98,8 @@ void MotorControl::on_pushButton_2_clicked(bool checked)
 void MotorControl::on_pushButton_3_clicked()
 {
     ui->listWidget->addItem("motor quick stop...");
+    // printf("Motor quick Stop...");
+
     emit motorQuickStop();
     ui->pushButton->setEnabled(1);
     ui->pushButton_2->setEnabled(0);
@@ -115,8 +128,6 @@ void MotorControl::on_pushButton_5_clicked()
 
 }
 
-
-
 void MotorControl::on_actionQuit_triggered()
 {
     this->close();
@@ -133,36 +144,43 @@ void MotorControl::on_actionHelp_triggered()
 
 void MotorControl::get_feedback_data(std::vector<float> vector){
     
-    ui->lineEdit->setText(QString::number(vector[0]));    //motor pos
-    ui->lineEdit_2->setText(QString::number(vector[1]));  //motor vel
-    ui->lineEdit_3->setText(QString::number(vector[2]));  //motor torque
-    ui->lineEdit_4->setText(QString::number(vector[3]));  //current
-    ui->lineEdit_10->setText(QString::number(vector[4]));  //joint position
-    ui->lineEdit_5->setText(QString::number(vector[5]));  //joint velocity
-    ui->lineEdit_11->setText(QString::number(vector[6]));  //joint torque
+    ui->lineEdit->setText(QString::number(vector[0],    'f', 1));    //motor pos
+    ui->lineEdit_2->setText(QString::number(vector[1],  'f', 2));  //motor vel
+    ui->lineEdit_3->setText(QString::number(vector[2],  'f', 2));  //motor torque
+    ui->lineEdit_4->setText(QString::number(vector[3],  'f', 2));  //current
+    ui->lineEdit_10->setText(QString::number(vector[4], 'f', 2));  //joint position
+    ui->lineEdit_5->setText(QString::number(vector[5],  'f', 2));  //joint velocity
+    ui->lineEdit_11->setText(QString::number(vector[6], 'f', 2));  //joint torque
     ui->lineEdit_12->setText(QString::number(vector[7]));  //chip temperture
+
     // vector[8] time interval
     if(plot_pos){
-        plot_data[0] = vector[8];
-        plot_data[1] = vector[0];
+
+        plot_data.clear();
+        plot_data.push_back(vector[8]);
+        plot_data.push_back(vector[0]);
         emit sentPlotPosData(plot_data);
+
     }
 
     if(plot_vel){
-        plot_data[0] = vector[8];
-        plot_data[1] = vector[1];
+        plot_data.clear();
+        plot_data.push_back(vector[8]);
+        plot_data.push_back(vector[1]);
         emit sentPlotVelData(plot_data);
     }
 
     if(plot_tor){
-        plot_data[0] = vector[8];
-        plot_data[1] = vector[2];
+        plot_data.clear();
+        plot_data.push_back(vector[8]);
+        plot_data.push_back(vector[2]);
         emit sentPlotTorData(plot_data);
     }
 
     if(plot_temp){
-        plot_data[0] = vector[8];
-        plot_data[1] = vector[7];
+        plot_data.clear();
+        plot_data.push_back(vector[8]);
+        plot_data.push_back(vector[3]);
         emit sentPlotTempData(plot_data);
     }
 
@@ -176,8 +194,14 @@ void MotorControl::motor_start_error(bool ifError){
         ui->pushButton_3->setEnabled(0);
         ui->pushButton_4->setEnabled(0);
         ui->tabWidget->setEnabled(0);
+        
     }else{
         ui->listWidget->addItem("motor start.");
+        ui->pushButton->setEnabled(0);
+        ui->pushButton_2->setEnabled(1);
+        ui->pushButton_3->setEnabled(1);
+        ui->pushButton_4->setEnabled(1);
+        ui->tabWidget->setEnabled(1);
     }
 }
 void MotorControl::on_actionPostion_triggered()
@@ -189,7 +213,8 @@ void MotorControl::on_actionPostion_triggered()
         ui_state_plot_pos->m_chart->setTitle("Plot Position");
         ui_state_plot_pos->m_chart->m_axisX->setTitleText("Time(ms)");
         ui_state_plot_pos->m_chart->m_axisY->setTitleText("Position(deg)");
-        ui_state_plot_pos->m_chart->m_axisY->setRange(-360, 360);
+        ui_state_plot_pos->m_chart->m_axisY->setRange(-36000, 36000);
+        // printf("plot position.\n ");
         ui_state_plot_pos->show();
 }
 
@@ -202,10 +227,8 @@ void MotorControl::on_actionVeclocity_triggered()
     ui_state_plot_vel->m_chart->setTitle("Plot Velocity");  
     ui_state_plot_vel->m_chart->m_axisX->setTitleText("Time(ms)");
     ui_state_plot_vel->m_chart->m_axisY->setTitleText("Veclocity(deg/s)");
-    ui_state_plot_vel->m_chart->m_axisY->setRange(-100, 100);
-
+    ui_state_plot_vel->m_chart->m_axisY->setRange(-5000, 5000);
     ui_state_plot_vel->show();
-
 }
 
 void MotorControl::on_actionTorque_triggered()
@@ -217,7 +240,7 @@ void MotorControl::on_actionTorque_triggered()
     ui_state_plot_tor->m_chart->setTitle("Plot Torque");
     ui_state_plot_tor->m_chart->m_axisX->setTitleText("Time(ms)");
     ui_state_plot_tor->m_chart->m_axisY->setTitleText("Torque(mN.m)");
-    ui_state_plot_tor->m_chart->m_axisY->setRange(-50, 50);
+    ui_state_plot_tor->m_chart->m_axisY->setRange(-2500, 2500);
     ui_state_plot_tor->show();
 
 }
@@ -234,4 +257,30 @@ void MotorControl::on_actionTemperature_triggered()
     ui_state_plot_temp->m_chart->m_axisY->setRange(0, 100);
     ui_state_plot_temp->show();
 
+}
+
+void MotorControl::on_pushButton_6_clicked()
+{
+    // printf("pos command \n");
+    std::vector<float>temp;
+    temp.clear();
+    float position = ui->lineEdit_6->text().toFloat();
+    float velcoity = ui->lineEdit_7->text().toFloat();
+    temp.push_back(position);
+    temp.push_back(velcoity);
+    emit sentMotorPos(temp);
+}
+
+void MotorControl::on_pushButton_7_clicked()
+{
+    // printf("vel command \n");
+    float velcoity = ui->lineEdit_8->text().toFloat();
+    emit sentMotorVel(velcoity);
+}
+
+void MotorControl::on_pushButton_8_clicked()
+{
+    // printf("tor command \n");
+    float torque = ui->lineEdit_9->text().toFloat();
+    emit sentMotorTorque(torque);
 }

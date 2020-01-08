@@ -6,6 +6,7 @@
 #include <QtCharts/QAbstractAxis>
 #include <QtCharts/QSplineSeries>
 #include <QtCharts/QValueAxis>
+// #include <QtCharts/QLineSeries>
 
 QT_CHARTS_BEGIN_NAMESPACE
 class QSplineSeries;
@@ -23,6 +24,7 @@ public:
  
 public:
     QSplineSeries *m_series;
+    // QLineSeries *m_series;
     QValueAxis *m_axisX;
     QValueAxis *m_axisY;
     qreal m_x;

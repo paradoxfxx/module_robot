@@ -1,4 +1,3 @@
-
 #include "chart.h"
  
 Chart::Chart(QGraphicsItem *parent, Qt::WindowFlags wFlags):
@@ -10,8 +9,8 @@ Chart::Chart(QGraphicsItem *parent, Qt::WindowFlags wFlags):
     m_y(0)
 {
     m_series = new QSplineSeries(this);
-    QPen green(Qt::red);
-    green.setWidth(1);
+    QPen green(Qt::green);
+    green.setWidth(2);
     m_series->setPen(green);
     m_series->append(m_x, m_y);
  

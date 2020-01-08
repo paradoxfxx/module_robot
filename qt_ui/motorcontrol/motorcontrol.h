@@ -29,7 +29,7 @@ signals:
     
     void changeOpmode(uint8_t mode);
 
-    void sentMotorPos(float position);
+    void sentMotorPos(std::vector<float>);
     void sentMotorVel(float velocity);
     void sentMotorTorque(float torque);
 
@@ -67,6 +67,12 @@ private slots:
     void on_actionTorque_triggered();
 
     void on_actionTemperature_triggered();
+
+    void on_pushButton_6_clicked();
+
+    void on_pushButton_7_clicked();
+
+    void on_pushButton_8_clicked();
 
 private:
 
