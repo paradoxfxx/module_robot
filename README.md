@@ -29,7 +29,7 @@
 > sudo apt-get install zlibc minizip    
 
 ### 2.1.2 linux kernel compile and  install
-**Refer:**<https://rtt-lwr.readthedocs.io/en/latest/rtpc/xenomai3.html*
+**Refer:**[https://rtt-lwr.readthedocs.io/en/latest/rtpc/xenomai3.html](https://rtt-lwr.readthedocs.io/en/latest/rtpc/xenomai3.html)
 
 
 ### 2.1.3 test linux version
@@ -44,7 +44,7 @@
 
 
 ## 2.2 SOEM install
-**Refer:**<https://github.com/OpenEtherCATsociety/SOEM/blob/master/README.md*
+**Refer:**[https://github.com/OpenEtherCATsociety/SOEM/blob/master/README.md](https://github.com/OpenEtherCATsociety/SOEM/blob/master/README.md)
 
 
 # 3.Elmo control
