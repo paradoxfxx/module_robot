@@ -1,5 +1,5 @@
 
-**This package could control servo motor base Ethercat COE, SOEM and Xenomai.**
+**This package could control servo motor based on Ethercat COE, SOEM and Xenomai.**
 
 
      ethercat manager   :   Receive and send ethercat frames   
