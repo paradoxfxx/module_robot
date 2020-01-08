@@ -63,8 +63,8 @@
  > git clone https://github.com/Jiongyu/module_robot.git    
  > cd module_robot  
  > mkdir build && cd build  
- > cmake .. 
- > make 
+ > cmake ..    
+ > make   
 
 ## 3.2 Motor control test
 
