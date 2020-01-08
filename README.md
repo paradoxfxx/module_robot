@@ -21,16 +21,16 @@
 ## 2.1 linux and xenomai install
 
 ### 2.1.1 compile tool install
-
-* sudo apt-get install libncurses5-dev libssl-dev
-* sudo apt-get install build-essential openssl
-* sudo apt-get install libidn11-dev libidn11
-* sudo apt-get install bc
-* sudo apt-get install gawk
-* sudo apt-get install libstdc++6
-* sudo apt-get install lib32stdc++6
-* sudo apt-get install zlibc minizip
-
+'''
+sudo apt-get install libncurses5-dev libssl-dev     
+sudo apt-get install build-essential openssl    
+sudo apt-get install libidn11-dev libidn11      
+sudo apt-get install bc     
+sudo apt-get install gawk       
+sudo apt-get install libstdc++6     
+sudo apt-get install lib32stdc++6       
+sudo apt-get install zlibc minizip      
+'''
 ### 2.1.2 linux kernel compile and  install
 **Refer:**<https://rtt-lwr.readthedocs.io/en/latest/rtpc/xenomai3.html*
 
@@ -43,7 +43,7 @@
 
 ### 2.1.4 test Xenomai latency
 * cd /usr/xenomai/bin
-* sudo ./latency
+sudo ./latency
 
 
 ## 2.2 SOEM install
@@ -66,12 +66,12 @@
 * l
 
 **cia 402 control mode test**
-* sudo ./csp_test
-* sudo ./csv_test
-* sudo ./cst_test
-* sudo ./pp_test
-* sudo ./pv_test
-* sudo ./pt_test
+sudo ./csp_test
+sudo ./csv_test
+sudo ./cst_test
+sudo ./pp_test
+sudo ./pv_test
+sudo ./pt_test
 
 **motor control ui**
-* sudo ./ui_motor_control
+sudo ./ui_motor_control
