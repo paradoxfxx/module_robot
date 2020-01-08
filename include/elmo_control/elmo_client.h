@@ -31,7 +31,7 @@ typedef struct {
   uint32 velocity_actual_value;	  	    // 606Ch : Velocity actual value
   uint32 digital_inputs;	            	// 60FDh : Digital inputs
   uint16 analog_input;                  // 2205 : Analog input
-  // uint32 current_actual_value;          // 6078  : Current actual
+  uint16 current_actual_value;          // 6078  : Current actual
 } ElmoInput;
 
 typedef struct {
@@ -43,6 +43,7 @@ typedef struct {
   uint8  operation_mode;		// 6060h : Mode of operation
   uint32 position_offset;   //60b0
   uint32 velocity_offset;   //60B1
+  // uint32 profile_velocity;  //0x6081
   uint16 torque_offset;     //60b2
 
 } ElmoOutput;
@@ -62,6 +63,7 @@ public:
    *                     (>= 1)
    */
   ElmoClient(ethercat::EtherCatManager& manager, int slave_no);
+  ~ElmoClient();
 
   /**
    * \brief Write the given set of control flags to the memory of the controller
@@ -100,16 +102,24 @@ public:
    */
   void servoOff();
 
+  void shutDown();
+  // void quickStop();
+
+  int sentPosDemandValue(int32_t i32val);
 
   int setAcc(uint32_t u32val);
-  
   int setDcc(uint32_t u32val);
+
+  int setMaxAcc(int32_t i32val);
+  int setMaxDcc(int32_t i32val);
+
 
   /*
    * \brief set Profile velocity 0 - 4294967295 (6081h / 00h)
    * \return int( 0 : success /-1:fail)
    */
   int setProfileVelocity(uint32_t val);
+  int setMaxProfileVelocity(uint32_t val);
 
  /*
    * \brief set max velocity 0 - 4294967295 (0x6080 / 00h)
@@ -123,8 +133,35 @@ public:
    */
   int setMaxTorque(uint16_t max_torque);
 
-  
+ /*
+   * \brief set max current 0 - 2**32 (0x6075 / 00h)  uint(mA)
+   * \return int( 0 : success /-1:fail)
+   */
+  int setRateCurrent(uint32_t rate_cur);
 
+
+ /*
+   * \brief set max current 0 - 65535 (0x6075 / 00h)  uint(rateCurrent/1000)
+   * \return int( 0 : success /-1:fail)
+   */
+  int setMaxCurrent(uint16_t max_cur);
+
+  
+   /*
+   * \brief set position range limit 607B
+   * unit (deg)
+   * \return int( 0 : success /-1:fail)
+   */
+  int setPosRangeLimit(uint32_t down_range,uint32_t up_range);
+
+   /*
+   * \brief set position option code 60F2
+   * unit (unit16_t)
+   * \return int( 0 : success /-1:fail)
+   */
+  int setPosOptionCode(uint16_t val);
+  uint16_t readPosOptionCode();
+  
   /*
    * \brief get the absolute position encoder Pos by SDO 
    * \return uint32_t
@@ -197,6 +234,7 @@ public:
 
   uint16_t readActualBuffPos() const;
 
+
   /**
    * brief : get the chip temperature.
    * return : (int16_t) unit:celsius 
@@ -207,7 +245,7 @@ public:
 private:
 
   template<class DATA_TYPE>
-  int setSDO( uint16_t index, DATA_TYPE val);
+  int setSDO( uint16_t index, DATA_TYPE val, uint8_t sub_index = 0x00);
 
   ethercat::EtherCatManager& manager_;
   const int slave_no_;

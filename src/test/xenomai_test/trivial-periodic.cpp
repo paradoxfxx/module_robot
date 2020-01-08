@@ -149,6 +149,10 @@ int main(int argc, char* argv[])
 	rt_printf("task start: %s\n",success ? "false" : "success");
 	success = rt_task_start(&demo_task_1, &demo_2,  (void *)stop_flag);
 	rt_printf("task start: %s\n",success ? "false" : "success");
+	
+	// rt_task_join(&demo_task);
+	// rt_task_join(&demo_task_1);
+
 	pause();
 
 

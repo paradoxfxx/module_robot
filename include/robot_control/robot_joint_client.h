@@ -47,7 +47,11 @@ public:
     * \return void
     */
     void sentPos(float pos);
+    // only for profile position mode.  vel(deg/s)
+    void sentPos(float pos, float vel); 
     void sentPosOffset(float pos);
+    void sentPosDemandValue(float pos);
+
 
     /**
     * \brief sent velocity to the motor
@@ -55,7 +59,7 @@ public:
     * \return void
     */
     void sentVel(float vel);
-    void sentVelOffset(float vel);
+    // void sentVelOffset(float vel);
 
     /**
     * \brief sent torque to the motor
@@ -66,25 +70,11 @@ public:
     void sentTorqueOffset(float torque);
 
     /**
-    * \brief sent position trajectory to the motor , only for CYCLIC_SYNCHRONOUS_POSITION_MODE
+    * \brief sent position trajectory to the motor , only for INTERPOLATED_POSITION_MODE
     * \unit degree
     * \return int(0:success, -1:error)
     */
     int sentPosTraj(std::vector<float>points);
-
-    /**
-    * \brief sent velocity trajectory to the motor,  only for CYCLIC_SYNCHRONOUS_VELOCITY_MODE
-    * \unit degree/s
-    * \return int(0:success, -1:error)
-    */
-    int sentVelTraj(std::vector<float>points);
-
-   /**
-    * \brief sent velocity trajectory to the motor, only for CYCLIC_SYNCHRONOUS_TORQUE_MODE
-    * \unit mN.m
-    * \return int(0:success, -1:error)
-    */
-    int sentTorqueTraj(std::vector<float>points);
 
     /**
     * \brief change the operation mode. 
@@ -114,6 +104,13 @@ public:
     * \return float
     */
     float getMotorVel() const;
+
+    /**
+    * \brief get the motor current
+    * \unit mA
+    * \return float
+    */
+    float getMotorCurrent() const;
 
     /**
     * \brief get the motor torque
@@ -146,6 +143,11 @@ public:
     float getJointTorque() const;
 
 
+   /**
+   * \brief position if reached
+   * \return int (1: reached , 0: not reached)
+   */
+  int ifReached();
 
 
     /*test code  */
@@ -162,6 +164,7 @@ private:
     elmo_control::ElmoClient* client;
     elmo_control::ElmoInput input;
     elmo_control::ElmoOutput output;
+    
 
 };
 

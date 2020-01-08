@@ -24,7 +24,7 @@ int main(int argc, char *argv[]){
 			printf("op mode  %d .\n", joint1->readOpmode());
 
 		}
-		joint1->sentPos(pos + 10);
+		joint1->sentPos(pos - 10);
 
 		rt_timer_spin(DEFAULT_INTERPOLATION_TIME_PERIOD);
 

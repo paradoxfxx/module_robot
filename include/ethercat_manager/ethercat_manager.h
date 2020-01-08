@@ -144,8 +144,6 @@ private:
     int num_clients_;
     mutable boost::mutex iomap_mutex_;
     int wkc;
-    bool real_time_;
-
 
 };
 

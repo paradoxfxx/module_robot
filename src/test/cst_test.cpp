@@ -19,11 +19,13 @@ int main(int argc, char *argv[]){
 			printf("pos: %.2f deg !.\n" , joint1->getMotorPos());
 			printf("vel: %.2f deg/s !.\n" , joint1->getMotorVel());
 			printf("torque: %f mN.m !.\n",joint1->getMotorTorque());
+			printf("current: %f mA.\n", joint1->getMotorCurrent());
 			printf("status word %04x .\n", joint1->getStatusWord());
 			printf("op mode  %d .\n", joint1->readOpmode());
 
 		}
-		joint1->sentTorque(200);
+
+		joint1->sentTorque(300);
 
 		rt_timer_spin(DEFAULT_INTERPOLATION_TIME_PERIOD);
 

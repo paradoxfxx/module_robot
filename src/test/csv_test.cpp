@@ -11,7 +11,7 @@ int main(int argc, char *argv[]){
 
 	joint1->changeOPmode(CYCLIC_SYNCHRONOUS_VELOCITY_MODE);
 
-	for(int i = 0; i < 50000; i++){
+	for(int i = 0; i < 10000; i++){
 		joint1->get_feedback();
 
 		if(i%100 == 0 ){
@@ -22,7 +22,7 @@ int main(int argc, char *argv[]){
 			printf("op mode  %d .\n", joint1->readOpmode());
 
 		}
-		joint1->sentVel(-720);
+		joint1->sentVel(-2000);
 
 		rt_timer_spin(DEFAULT_INTERPOLATION_TIME_PERIOD);
 
