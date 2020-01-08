@@ -18,22 +18,15 @@
 ## 2.1 linux and xenomai install
 
 **2.1.1 compile tool install**
-> sudo apt-get install libncurses5-dev libssl-dev 
 
+> sudo apt-get install libncurses5-dev libssl-dev
 > sudo apt-get install build-essential openssl
-
 > sudo apt-get install libidn11-dev libidn11
-
 > sudo apt-get install bc
-
 > sudo apt-get install gawk
-
 > sudo apt-get install libstdc++6
-
 > sudo apt-get install lib32stdc++6
-
 > sudo apt-get install zlibc minizip
-
 
 **2.1.2 linux kernel compile and  install**
 
@@ -41,10 +34,43 @@
 
 **Refer:**<https://rtt-lwr.readthedocs.io/en/latest/rtpc/xenomai3.html>
 
+
 **2.1.3 test**
 > uname -a
->>Linux tan-pc 4.9.38-xenomai-3.0.5 #1 SMP Thu May 23 22:01:51 CST 2019 x86_64 x86_64 x86_64 GNU/Linux
+**terminator show:**
+>Linux tan-pc 4.9.38-xenomai-3.0.5 #1 SMP Thu May 23 22:01:51 CST 2019 x86_64 x86_64 x86_64 GNU/Linux
+**success**
 
 ## 2.2 SOEM install
 **Refer:**<https://github.com/OpenEtherCATsociety/SOEM/blob/master/README.md>
+
+
+# 3.Elmo control
+
+## 3.1 Install
+ > cd 
+ > git clone https://github.com/Jiongyu/module_robot.git
+ > cd module_robot
+ > mkdir build && cd build
+ > cmake ..
+ > make
+
+## 3.2 Motor control test
+
+> cd ./../bin/
+> l
+
+**cia 402 control mode test**
+> sudo ./csp_test
+> sudo ./csv_test
+> sudo ./cst_test
+> sudo ./pp_test
+> sudo ./pv_test
+> sudo ./pt_test
+
+**motor control ui**
+> sudo ./ui_motor_control
+
+
+
 
