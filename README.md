@@ -1,4 +1,12 @@
 
+**This package could control servo motor base Ethercat COE, SOEM and Xenomai. **
+
+    | ethercat manager  | Receive and send ethercat frames              |
+    | elmo control      | Send and receive status data based on CIA402  |
+    | robot control     | Motor control user layer                      |
+    
+    
+
 # 1.Resource
 
 ## 1.1.linux-4.9.38
