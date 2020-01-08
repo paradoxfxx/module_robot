@@ -163,11 +163,6 @@ void RobotJointClient::sentVel(float vel){
 	client->writeOutputs(output);
 }
 
-// void RobotJointClient::sentVelOffset(float vel){
-// 	output.controlword |=  0x000f;
-// 	output.velocity_offset = DATA_TO_COUNT(vel);
-// 	client->writeOutputs(output);
-// }
 
 
 void RobotJointClient::sentTorque(float torque){
@@ -181,42 +176,6 @@ void RobotJointClient::sentTorqueOffset(float torque){
 	output.controlword |=  0x000f;
 	output.torque_offset = TORQUE_USER_TO_MOTOR(torque);
 	client->writeOutputs(output);
-}
-
-int RobotJointClient::sentPosTraj(std::vector<float>points){
-
-	if(input.operation_mode == INTERPOLATED_POSITION_MODE){
-		
-		output.controlword |=  (1 << 4);
-		client->writeOutputs(output);
-
-		int8_t buffsize_pos;
-		std::vector<float>::iterator point = points.begin();
-		
-		while (1)
-		{
-			buffsize_pos = client->readActualBuffPos();
-
-			if(buffsize_pos <= ACTUAL_INTERPOLATION_BUFF_SIZE_LIMIT){
-
-				for(int i=0; i<= MAX_INTERPOLATION_BUFF_SIZE / 3; i++){
-					if(point != points.end()){
-						output.target_position = DATA_TO_COUNT(*point);
-						client->writeOutputs(output);
-						++ point;
-					}else{
-						break;
-					}	
-				}
-			}
-			rt_timer_spin(DEFAULT_INTERPOLATION_TIME_PERIOD);  
-		}
-		printf("Successful execution trajectory...\n");
-		return 0;
-	}else{
-		fprintf(stderr,"Operation mode must be INTERPOLATED_POSITION_MODE \n");
-		return -1;
-	}
 }
 
 bool RobotJointClient::changeOPmode(uint8 opmode){
@@ -256,20 +215,12 @@ PDS_OPERATION RobotJointClient::readOpmode(){
 
 
 float RobotJointClient::getMotorPos() const{
-	// printf("%08x\n",input.position_actual_value);
-
 	return float(COUNT_TO_DATA(input.position_actual_value));
 
 }
 
 float RobotJointClient::getMotorVel() const{
-	// printf("%04x\n",(input.digital_inputs));
-	// printf("%04x\n",(input.velocity_actual_value ) );
-	// printf("%04x\n",(input.current_actual_value ) );
-	// printf("%04x\n",(input.torque_actual_value ) );
-
-	// return float(COUNT_TO_VEL( BIT_M_TO_N(input.velocity_actual_value,8,23)) );
-	// return float(COUNT_TO_VEL( input.velocity_actual_value >> 8) );
+	
 	return float(COUNT_TO_VEL( input.velocity_actual_value) );
 
 
@@ -280,9 +231,7 @@ uint16 RobotJointClient::getStatusWord() const{
 }
 
 float RobotJointClient::getMotorTorque() const{
-	// printf("%08x\n",input.torque_actual_value);
-	// printf("%04x\n",input.analog_input);
-	// printf("%04x\n",input.current_actual_value);
+
 	return (TORQUE_MOTOR_TO_USER(input.torque_actual_value));
 }
 

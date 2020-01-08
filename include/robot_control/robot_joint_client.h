@@ -68,14 +68,7 @@ public:
     */
     void sentTorque(float torque);
     void sentTorqueOffset(float torque);
-
-    /**
-    * \brief sent position trajectory to the motor , only for INTERPOLATED_POSITION_MODE
-    * \unit degree
-    * \return int(0:success, -1:error)
-    */
-    int sentPosTraj(std::vector<float>points);
-
+    
     /**
     * \brief change the operation mode. 
     * \return bool
