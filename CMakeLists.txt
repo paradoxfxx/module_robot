@@ -4,7 +4,7 @@ add_compile_options(-std=c++11)
 set(PRO_NAME modular_robot)
 project(${PRO_NAME})
 
-#SET(CMAKE_BUILD_TYPE DEBUG)
+# SET(CMAKE_BUILD_TYPE DEBUG)
 SET(CMAKE_BUILD_TYPE RELEASE)
 
 set(ENV{XENOMAI_ROOT_DIR} /usr/xenomai)
